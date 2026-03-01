@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+@theme {
+    --color-primary: #4F46E5;
+    --color-primary-dark: #4338CA;
+    --color-primary-light: #EEF2FF;
+    --color-accent-amber: #F59E0B;
+    --color-accent-emerald: #10B981;
+    --color-accent-indigo: #6366F1;
+    --color-surface-warm: #FAF9F6;
+}
+
+@layer base {
+    body {
+        font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+        color: #0F172A;
+        background-color: #FDFCFB;
+    }
+}
+
+.mesh-gradient {
+    background-color: #ffffff;
+    background-image: radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.05) 0px, transparent 50%),
+                      radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.05) 0px, transparent 50%);
+}
+
+.card-shimmer {
+    position: relative;
+    overflow: hidden;
+}
+.card-shimmer::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.3), transparent);
+    transform: skewX(-25deg);
+    transition: 0.75s;
+}
+.card-shimmer:hover::after {
+    left: 125%;
+}
+
+/* Side drawer for user management */
+.side-drawer {
+    transform: translateX(100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.side-drawer.open {
+    transform: translateX(0);
+}
+
+/* Notification slide-in */
+@keyframes slideIn {
+    from { transform: translateY(-150%); }
+    to { transform: translateY(0); }
+}
+.notify-slide-in {
+    animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
