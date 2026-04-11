@@ -14,28 +14,31 @@ spl_autoload_register(function ($class) {
     foreach ($prefixMap as $prefix => $path) {
         if (strpos($class, $prefix) === 0) {
             $relativeClass = substr($class, strlen($prefix));
-            $file = __DIR__ . '/../' . $path . str_replace('\\', '/', $relativeClass) . '.php';
-            
+            $file = __DIR__.'/../'.$path.str_replace('\\', '/', $relativeClass).'.php';
+
             // Special case for Dompdf\Cpdf which is in lib/
             if ($class === 'Dompdf\Cpdf') {
-                $file = __DIR__ . '/../vendor/dompdf/dompdf/lib/Cpdf.php';
+                $file = __DIR__.'/../vendor/dompdf/dompdf/lib/Cpdf.php';
             }
 
             if (file_exists($file)) {
                 require $file;
+
                 return true;
             } else {
                 // If not found in primary path, try secondary for Dompdf (lib/)
                 if (strpos($class, 'Dompdf\\') === 0) {
-                    $libFile = __DIR__ . '/../vendor/dompdf/dompdf/lib/' . str_replace('\\', '/', $relativeClass) . '.php';
+                    $libFile = __DIR__.'/../vendor/dompdf/dompdf/lib/'.str_replace('\\', '/', $relativeClass).'.php';
                     if (file_exists($libFile)) {
                         require $libFile;
+
                         return true;
                     }
                 }
             }
         }
     }
+
     return false;
 });
 
@@ -52,10 +55,6 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
-        $middleware->validateCsrfTokens(except: [
-            'api/login',
-            'api/logout'
-        ]);
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
         ]);
@@ -64,7 +63,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->renderable(function (\Illuminate\Auth\AuthenticationException $e, $request) {
             if ($request->is('api/*') || $request->wantsJson() || $request->ajax()) {
                 return response()->json([
-                    'message' => 'Unauthenticated.'
+                    'message' => 'Unauthenticated.',
                 ], 401);
             }
         });

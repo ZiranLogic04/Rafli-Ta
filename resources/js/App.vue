@@ -1,11 +1,11 @@
 <template>
-    <div class="relative min-h-screen">
+    <div class="app-root">
         <!-- Flash notification -->
-        <div v-if="flash" class="fixed top-6 left-1/2 -translate-x-1/2 z-[9999] notify-slide-in">
-            <div class="flex items-center gap-3 px-5 py-3 rounded-2xl shadow-xl border bg-white" :class="flash.type === 'success' ? 'border-emerald-100 text-emerald-800' : 'border-red-100 text-red-800'">
-                <span class="material-symbols-outlined text-xl">{{ flash.type === 'success' ? 'check_circle' : 'warning' }}</span>
-                <span class="text-sm font-bold">{{ flash.message }}</span>
-                <button @click="flash = null" class="ml-2 opacity-50 hover:opacity-100"><span class="material-symbols-outlined text-[18px]">close</span></button>
+        <div v-if="flash" class="flash-notification notify-slide-in">
+            <div class="flash-content" :class="flash.type === 'success' ? 'flash-success' : 'flash-error'">
+                <span class="material-symbols-outlined flash-icon">{{ flash.type === 'success' ? 'check_circle' : 'warning' }}</span>
+                <span class="flash-message">{{ flash.message }}</span>
+                <button @click="flash = null" class="flash-close"><span class="material-symbols-outlined flash-close-icon">close</span></button>
             </div>
         </div>
         <router-view />
@@ -38,3 +38,65 @@ provide('user', user);
 provide('updateUser', fetchUser);
 provide('showFlash', showFlash);
 </script>
+
+<style scoped>
+.app-root {
+    position: relative;
+    min-height: 100vh;
+}
+
+.flash-notification {
+    position: fixed;
+    top: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9999;
+}
+
+.flash-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    background: white;
+}
+
+.flash-success {
+    border: 1px solid var(--emerald-100);
+    color: var(--emerald-700);
+}
+
+.flash-error {
+    border: 1px solid var(--rose-100);
+    color: var(--rose-700);
+}
+
+.flash-icon {
+    font-size: 1.25rem;
+}
+
+.flash-message {
+    font-size: 0.875rem;
+    font-weight: 700;
+}
+
+.flash-close {
+    margin-left: 0.5rem;
+    opacity: 0.5;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    transition: opacity 0.2s;
+}
+
+.flash-close:hover {
+    opacity: 1;
+}
+
+.flash-close-icon {
+    font-size: 18px;
+}
+</style>

@@ -2,29 +2,32 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-
 class DashboardController extends Controller
 {
-    public function index()
+    private function approvalInboxCount($user): int
     {
-        $user = auth()->user();
-        $letterTypes = \App\Models\LetterType::all();
+        return \App\Models\Letter::where('status', 'pending')
+            ->where(function ($q) use ($user) {
+                $q->where('target_user_id', $user->id)
+                    ->orWhere(function ($sub) use ($user) {
+                        $sub->whereNull('target_user_id')
+                            ->where('current_approver_role', $user->role);
 
-        if ($user->role === 'admin') {
-            $letters = \App\Models\Letter::with(['user', 'type'])->latest()->take(5)->get();
-            $stats = [
-                'pending' => \App\Models\Letter::where('status', 'pending')->count(),
-                'approved' => \App\Models\Letter::where('status', 'approved')->count(),
-                'rejected' => \App\Models\Letter::where('status', 'rejected')->count(),
-                'users' => \App\Models\User::count(),
-            ];
-            return view('admin.dashboard', compact('letters', 'letterTypes', 'stats'));
-        }
+                        if ($user->role === 'wadir' && ! is_null($user->wadir_level)) {
+                            $sub->where(function ($w) use ($user) {
+                                $w->whereNull('target_wadir_level')
+                                    ->orWhere('target_wadir_level', $user->wadir_level);
+                            });
+                        }
 
-        $letters = \App\Models\Letter::where('user_id', $user->id)->with('type')->latest()->take(5)->get();
-        $letterTypes = $user->letterTypes;
-        return view('user.dashboard', compact('letters', 'letterTypes'));
+                        if (in_array($user->role, ['kaprodi', 'dosen']) && ! empty($user->jurusan)) {
+                            $sub->where(function ($j) use ($user) {
+                                $j->whereNull('target_jurusan')
+                                    ->orWhereRaw('LOWER(target_jurusan) = ?', [strtolower((string) $user->jurusan)]);
+                            });
+                        }
+                    });
+            })->count();
     }
 
     public function apiIndex()
@@ -32,29 +35,50 @@ class DashboardController extends Controller
         $user = auth()->user();
 
         if ($user->role === 'admin') {
-            $letters = \App\Models\Letter::with(['user', 'type'])->latest()->take(5)->get();
-            $letterTypes = \App\Models\LetterType::all();
+            $letters = \App\Models\Letter::with(['user', 'type.parent'])->latest()->take(5)->get();
+            $letterTypes = \App\Models\LetterType::with('parent')
+                ->orderByRaw('CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END')
+                ->orderBy('name')
+                ->get();
             $stats = [
                 'pending' => \App\Models\Letter::where('status', 'pending')->count(),
                 'approved' => \App\Models\Letter::where('status', 'approved')->count(),
                 'rejected' => \App\Models\Letter::where('status', 'rejected')->count(),
                 'users' => \App\Models\User::count(),
             ];
+
             return response()->json([
                 'user' => $user,
                 'letters' => $letters,
                 'letterTypes' => $letterTypes,
-                'stats' => $stats,
+                'stats' => [
+                    'total' => $stats['pending'] + $stats['approved'] + $stats['rejected'],
+                    'pending' => $stats['pending'],
+                    'approved' => $stats['approved'],
+                    'rejected' => $stats['rejected'],
+                    'users' => $stats['users'],
+                    'approvalInboxCount' => $this->approvalInboxCount($user),
+                ],
             ]);
         }
 
-        $letters = \App\Models\Letter::where('user_id', $user->id)->with('type')->latest()->take(5)->get();
-        $letterTypes = $user->letterTypes;
+        $letters = \App\Models\Letter::where('user_id', $user->id)->with('type.parent')->latest()->take(5)->get();
+        $letterTypes = $user->allowedLetterTypes()->get();
+        $baseQuery = \App\Models\Letter::where('user_id', $user->id);
+        $approvalInboxCount = $this->approvalInboxCount($user);
 
         return response()->json([
             'user' => $user,
             'letters' => $letters,
             'letterTypes' => $letterTypes,
+            'stats' => [
+                'total' => (clone $baseQuery)->count(),
+                'pending' => (clone $baseQuery)->where('status', 'pending')->count(),
+                'approved' => (clone $baseQuery)->where('status', 'approved')->count(),
+                'rejected' => (clone $baseQuery)->where('status', 'rejected')->count(),
+                'users' => 0,
+                'approvalInboxCount' => $approvalInboxCount,
+            ],
         ]);
     }
 }

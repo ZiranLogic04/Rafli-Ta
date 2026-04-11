@@ -1,89 +1,353 @@
 <template>
-    <div class="min-h-screen flex items-center justify-center p-6" style="background-image: radial-gradient(at 0% 0%, rgba(79,70,229,0.04) 0px, transparent 50%), radial-gradient(at 100% 0%, rgba(245,158,11,0.04) 0px, transparent 50%), radial-gradient(at 50% 100%, rgba(79,70,229,0.04) 0px, transparent 50%);">
-
-
-        <div class="w-full max-w-md">
-            <!-- Logo -->
-            <div class="flex flex-col items-center mb-8">
-                <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#4F46E5] to-[#6366F1] flex items-center justify-center text-white shadow-xl shadow-[#4F46E5]/20 mb-4">
-                    <span class="material-symbols-outlined" style="font-size: 2.25rem;">school</span>
+    <div class="mesh-gradient login-page">
+        <div class="login-container">
+            <!-- Left Side - Branding -->
+            <div class="login-left">
+                <div class="branding-content">
+                    <div class="logo-wrapper">
+                        <span class="material-symbols-outlined">school</span>
+                    </div>
+                    <h1 class="brand-title">Pusat Layanan Administrasi Surat</h1>
+                    <p class="brand-subtitle">Politeknik Pajajaran</p>
+                    <p class="brand-description">
+                        Sistem pengelolaan surat menyurat digital untuk lingkungan Politeknik Pajajaran.
+                    </p>
                 </div>
-                <h1 class="text-2xl font-extrabold tracking-tight">SISurat</h1>
-                <p class="text-[0.65rem] uppercase tracking-[0.2em] font-bold text-slate-400 mt-2">Campus Portal</p>
+                <p class="brand-copyright">&copy; 2026 Politeknik Pajajaran</p>
             </div>
 
-            <!-- Card -->
-            <div class="bg-white rounded-3xl p-10 shadow-2xl shadow-slate-200/50 border border-slate-100">
-                <div class="text-center mb-10">
-                    <h2 class="text-2xl font-extrabold tracking-tight mb-2">Sistem Pengajuan Surat</h2>
-                    <p class="text-slate-500 font-medium">Silakan masuk ke akun Anda</p>
+            <!-- Right Side - Login Form -->
+            <div class="login-right">
+                <div class="form-wrapper">
+                    <div class="form-header">
+                        <h2>Selamat Datang</h2>
+                        <p>Silakan masuk ke akun Anda</p>
+                    </div>
+
+                    <form @submit.prevent="handleLogin" class="login-form">
+                        <div class="form-group">
+                            <label class="form-label">Email</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon material-symbols-outlined">mail</span>
+                                <input
+                                    v-model="form.email"
+                                    type="email"
+                                    class="form-input"
+                                    placeholder="nama@sisurat.com"
+                                    required
+                                    autofocus
+                                />
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Kata Sandi</label>
+                            <div class="input-wrapper">
+                                <span class="input-icon material-symbols-outlined">lock</span>
+                                <input
+                                    v-model="form.password"
+                                    type="password"
+                                    class="form-input"
+                                    placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            type="submit"
+                            class="btn-primary login-btn"
+                            :disabled="loading"
+                        >
+                            <span
+                                v-if="loading"
+                                class="material-symbols-outlined animate-spin"
+                                >progress_activity</span
+                            >
+                            <span>{{ loading ? "Memproses..." : "Masuk Sekarang" }}</span>
+                            <span v-if="!loading" class="material-symbols-outlined">login</span>
+                        </button>
+                    </form>
+
+                    <div class="divider">
+                        <span>Akses Cepat</span>
+                    </div>
+
+                    <router-link to="/templates" class="btn-outline template-link">
+                        <span class="template-link-left">
+                            <span class="material-symbols-outlined">description</span>
+                            Lihat Template Surat
+                        </span>
+                        <span class="material-symbols-outlined">arrow_forward</span>
+                    </router-link>
                 </div>
-
-                <form @submit.prevent="handleLogin" class="space-y-6">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2 ml-1">Email Kampus</label>
-                        <div class="relative">
-                            <div class="absolute left-0 top-0 bottom-0 w-12 flex items-center justify-center text-slate-400 pointer-events-none">
-                                <span class="material-symbols-outlined">mail</span>
-                            </div>
-                            <input v-model="form.email" type="email" placeholder="nama@kampus.ac.id" required autofocus
-                                class="w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-2xl font-medium focus:outline-none focus:bg-white focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10 transition-all"/>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2 ml-1">Kata Sandi</label>
-                        <div class="relative">
-                            <div class="absolute left-0 top-0 bottom-0 w-12 flex items-center justify-center text-slate-400 pointer-events-none">
-                                <span class="material-symbols-outlined">lock</span>
-                            </div>
-                            <input v-model="form.password" type="password" placeholder="••••••••" required
-                                class="w-full pl-11 pr-4 py-4 bg-slate-50 border-2 border-transparent rounded-2xl font-medium focus:outline-none focus:bg-white focus:border-[#4F46E5] focus:ring-4 focus:ring-[#4F46E5]/10 transition-all"/>
-                        </div>
-                    </div>
-
-                    <button type="submit" :disabled="loading"
-                        class="w-full py-4 bg-[#4F46E5] text-white font-bold rounded-2xl shadow-xl shadow-[#4F46E5]/30 hover:bg-[#4338CA] hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-2 mt-2 disabled:opacity-70">
-                        <span v-if="loading" class="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-                        <span>{{ loading ? 'Memproses...' : 'Masuk Sekarang' }}</span>
-                        <span v-if="!loading" class="material-symbols-outlined text-xl">login</span>
-                    </button>
-                </form>
             </div>
-
-            <p class="text-center mt-10 text-slate-400 text-sm font-medium">© 2026 Politeknik Pajajaran</p>
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, inject } from 'vue';
-const showFlash = inject('showFlash');
-import { useRouter } from 'vue-router';
-import axios from 'axios';
+import { ref, inject } from "vue";
+const showFlash = inject("showFlash");
+import { useRouter } from "vue-router";
+import axios from "axios";
+import { resetUserCache } from "../../router";
 
 const router = useRouter();
-const updateUser = inject('updateUser');
-const form = ref({ email: '', password: '' });
+const updateUser = inject("updateUser");
+const form = ref({ email: "", password: "" });
 const loading = ref(false);
 
 const handleLogin = async () => {
     loading.value = true;
     try {
-        const response = await axios.post('/api/login', {
+        await axios.get('/sanctum/csrf-cookie');
+        const response = await axios.post("/api/login", {
             email: form.value.email,
             password: form.value.password,
         });
-        
+
+        resetUserCache();
         await updateUser();
-        showFlash('Login berhasil!');
+        showFlash("Login berhasil!");
         setTimeout(() => {
-            router.push(response.data.redirect || '/dashboard');
+            router.push(response.data.redirect || "/dashboard");
         }, 500);
     } catch (e) {
-        showFlash(e.response?.data?.message || 'Terjadi kesalahan.', 'error');
+        showFlash(e.response?.data?.message || "Terjadi kesalahan.", "error");
     } finally {
         loading.value = false;
     }
 };
 </script>
+
+<style scoped>
+.login-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+}
+
+.login-container {
+    display: flex;
+    width: 100%;
+    min-height: 100vh;
+}
+
+/* Left Side - Branding */
+.login-left {
+    width: 45%;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent-indigo) 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-left::before {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at 30% 50%, rgba(255, 255, 255, 0.08) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.branding-content {
+    text-align: center;
+    z-index: 1;
+    max-width: 28rem;
+}
+
+.logo-wrapper {
+    width: 5rem;
+    height: 5rem;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 2rem;
+    color: white;
+    font-size: 2.5rem;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.brand-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: white;
+    line-height: 1.3;
+    margin-bottom: 0.75rem;
+    letter-spacing: -0.02em;
+}
+
+.brand-subtitle {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 1.5rem;
+}
+
+.brand-description {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.75);
+    line-height: 1.7;
+    font-weight: 400;
+}
+
+.brand-copyright {
+    position: absolute;
+    bottom: 2rem;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
+    z-index: 1;
+}
+
+/* Right Side - Form */
+.login-right {
+    width: 55%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+}
+
+.form-wrapper {
+    width: 100%;
+    max-width: 28rem;
+}
+
+.form-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+
+.form-header h2 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--slate-900);
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+}
+
+.form-header p {
+    color: var(--slate-500);
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-label {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--slate-700);
+    margin-left: 0.25rem;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--slate-400);
+    pointer-events: none;
+}
+
+.login-btn {
+    width: 100%;
+    margin-top: 0.5rem;
+}
+
+/* Divider */
+.divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 2rem 0;
+}
+
+.divider::before,
+.divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--slate-200);
+}
+
+.divider span {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--slate-400);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Template Link */
+.template-link {
+    text-decoration: none;
+}
+
+.template-link-left {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .login-container {
+        flex-direction: column !important;
+    }
+
+    .login-left {
+        width: 100% !important;
+        padding: 2.5rem 1.5rem;
+        min-height: auto;
+    }
+
+    .brand-copyright {
+        position: static;
+        margin-top: 1.5rem;
+    }
+
+    .login-right {
+        width: 100% !important;
+        padding: 2rem 1.5rem;
+    }
+
+    .brand-title {
+        font-size: 1.5rem;
+    }
+}
+</style>

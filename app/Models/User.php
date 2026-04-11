@@ -23,6 +23,8 @@ class User extends Authenticatable
         'password',
         'role',
         'code',
+        'wadir_level',
+        'jurusan',
     ];
 
     public function letters()
@@ -55,10 +57,28 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'wadir_level' => 'integer',
         ];
     }
+
     public function letterTypes()
     {
         return $this->belongsToMany(LetterType::class, 'letter_type_user');
+    }
+
+    public function rolePermissions()
+    {
+        return $this->hasMany(RoleLetterTypePermission::class, 'role', 'role');
+    }
+
+    public function allowedLetterTypes()
+    {
+        if ($this->role === 'admin') {
+            return LetterType::query()->with('parent')->orderByRaw('CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END')->orderBy('name');
+        }
+
+        return LetterType::whereHas('rolePermissions', function ($q) {
+            $q->where('role', $this->role);
+        })->with('parent')->orderByRaw('CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END')->orderBy('name');
     }
 }

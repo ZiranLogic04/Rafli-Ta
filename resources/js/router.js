@@ -1,34 +1,75 @@
-import { createRouter, createWebHistory } from 'vue-router';
-import axios from 'axios';
+import { createRouter, createWebHistory } from "vue-router";
+import axios from "axios";
 
-import Login from './Pages/Auth/Login.vue';
+import Login from "./Pages/Auth/Login.vue";
+import PublicTemplates from "./Pages/Public/Templates.vue";
 
-import UserDashboard from './Pages/User/Dashboard.vue';
-import UserLettersIndex from './Pages/User/Letters/Index.vue';
-import UserLettersCreate from './Pages/User/Letters/Create.vue';
+import Dashboard from "./Pages/Dashboard.vue";
+import UserLettersIndex from "./Pages/User/Letters/Index.vue";
+import UserLettersCreate from "./Pages/User/Letters/Create.vue";
+import UserApprovalsIndex from "./Pages/User/Approvals/Index.vue";
 
-import AdminDashboard from './Pages/Admin/Dashboard.vue';
-import AdminLettersIndex from './Pages/Admin/Letters/Index.vue';
-import AdminTypesIndex from './Pages/Admin/Types/Index.vue';
-import AdminUsersIndex from './Pages/Admin/Users/Index.vue';
+import AdminTypesIndex from "./Pages/Admin/Types/Index.vue";
+import AdminUsersIndex from "./Pages/Admin/Users/Index.vue";
 
 const routes = [
-    { path: '/login', name: 'login', component: Login, meta: { guest: true } },
+    { path: "/login", name: "login", component: Login, meta: { guest: true } },
+    {
+        path: "/templates",
+        name: "public.templates",
+        component: PublicTemplates,
+        meta: { public: true },
+    },
 
     // User routes
-    { path: '/dashboard', name: 'dashboard', component: UserDashboard, meta: { auth: true } },
-    { path: '/letters', name: 'user.letters.index', component: UserLettersIndex, meta: { auth: true } },
-    { path: '/letters/create', name: 'user.letters.create', component: UserLettersCreate, meta: { auth: true } },
+    {
+        path: "/dashboard",
+        name: "dashboard",
+        component: Dashboard,
+        meta: { auth: true },
+    },
+    {
+        path: "/letters",
+        name: "user.letters.index",
+        component: UserLettersIndex,
+        meta: { auth: true },
+    },
+    {
+        path: "/letters/create",
+        name: "user.letters.create",
+        component: UserLettersCreate,
+        meta: { auth: true },
+    },
+    {
+        path: "/approvals",
+        name: "user.approvals.index",
+        component: UserApprovalsIndex,
+        meta: { auth: true },
+    },
 
     // Admin routes
-    { path: '/admin/dashboard', name: 'admin.dashboard', component: AdminDashboard, meta: { auth: true, admin: true } },
-    { path: '/admin/letters', name: 'admin.letters.index', component: AdminLettersIndex, meta: { auth: true, admin: true } },
-    { path: '/admin/types', name: 'admin.types.index', component: AdminTypesIndex, meta: { auth: true, admin: true } },
-    { path: '/admin/users', name: 'admin.users.index', component: AdminUsersIndex, meta: { auth: true, admin: true } },
+    {
+        path: "/admin/dashboard",
+        name: "admin.dashboard",
+        redirect: "/dashboard",
+        meta: { auth: true, admin: true },
+    },
+    {
+        path: "/admin/types",
+        name: "admin.types.index",
+        component: AdminTypesIndex,
+        meta: { auth: true, admin: true },
+    },
+    {
+        path: "/admin/users",
+        name: "admin.users.index",
+        component: AdminUsersIndex,
+        meta: { auth: true, admin: true },
+    },
 
     // Catch-all redirect
-    { path: '/', redirect: '/login' },
-    { path: '/:pathMatch(.*)*', redirect: '/login' },
+    { path: "/", redirect: "/dashboard" },
+    { path: "/:pathMatch(.*)*", redirect: "/dashboard" },
 ];
 
 const router = createRouter({
@@ -36,34 +77,46 @@ const router = createRouter({
     routes,
 });
 
+// Cache user to avoid repeated API calls
+let cachedUser = null;
+let userFetched = false;
+
+const fetchUser = async () => {
+    if (userFetched) return cachedUser;
+    try {
+        const res = await window.axios.get("/api/user");
+        cachedUser = res.data;
+        userFetched = true;
+        return cachedUser;
+    } catch {
+        userFetched = true;
+        return null;
+    }
+};
+
+const resetUserCache = () => {
+    cachedUser = null;
+    userFetched = false;
+};
+
 // Navigation guard
 router.beforeEach(async (to, from, next) => {
-    // Try to get current user
-    let user = null;
-    try {
-        const res = await window.axios.get('/api/user');
-        user = res.data;
-    } catch (e) {
-        user = null;
-    }
+    const user = await fetchUser();
 
     if (to.meta.auth && !user) {
-        return next({ name: 'login' });
+        return next({ name: "login" });
     }
 
     if (to.meta.guest && user) {
-        if (user.role === 'admin') {
-            return next({ name: 'admin.dashboard' });
-        }
-        return next({ name: 'dashboard' });
+        return next({ name: "dashboard" });
     }
 
-    // If admin route but user is not admin
-    if (to.meta.admin && user && user.role !== 'admin') {
-        return next({ name: 'dashboard' });
+    if (to.meta.admin && user && user.role !== "admin") {
+        return next({ name: "dashboard" });
     }
 
     next();
 });
 
+export { resetUserCache };
 export default router;
