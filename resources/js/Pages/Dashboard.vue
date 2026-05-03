@@ -28,30 +28,7 @@
                 </div>
             </section>
 
-            <section class="grid-4">
-                <article
-                    v-for="item in statCards"
-                    :key="item.label"
-                    class="stat-card"
-                >
-                    <div class="stat-header">
-                        <div class="stat-icon-box" :class="[item.iconBg, item.iconText]">
-                            <span class="material-symbols-outlined stat-icon">
-                                {{ item.icon }}
-                            </span>
-                        </div>
-                        <span class="stat-label">
-                            {{ item.label }}
-                        </span>
-                    </div>
-                    <p class="stat-value">
-                        {{ item.value }}
-                    </p>
-                    <p class="stat-hint">
-                        {{ item.hint }}
-                    </p>
-                </article>
-            </section>
+
 
             <section>
                 <div class="section-header">
@@ -64,37 +41,37 @@
                 </div>
 
                 <div
-                    v-if="groupedLetterTypes.length > 0"
+                    v-if="activeLetterTypes.length > 0"
                     class="grid-3"
                 >
                     <article
-                        v-for="group in groupedLetterTypes"
-                        :key="group.id"
+                        v-for="type in activeLetterTypes"
+                        :key="type.id"
                         class="card-shimmer letter-card"
                     >
                         <div
                             class="letter-icon-box"
                             :class="[
-                                getIconConfig(group.name).bg,
-                                getIconConfig(group.name).text,
+                                getIconConfig(type.name, type.id).bg,
+                                getIconConfig(type.name, type.id).text,
                             ]"
                         >
                             <span class="material-symbols-outlined letter-icon">
-                                {{ getIconConfig(group.name).icon }}
+                                {{ getIconConfig(type.name, type.id).icon }}
                             </span>
                         </div>
 
                         <h3 class="letter-title">
-                            {{ group.name }}
+                            {{ type.name }}
                         </h3>
                         <p class="letter-description">
-                            {{ groupDescription(group) }}
+                            {{ type.parent?.name || 'Umum' }} - Klik untuk membuat surat ini.
                         </p>
 
                         <router-link
-                            :to="{ path: '/letters/create', query: { type_id: group.id } }"
+                            :to="{ path: '/letters/create', query: { type_id: type.id } }"
                             class="letter-btn"
-                            :class="getIconConfig(group.name).btn"
+                            :class="getIconConfig(type.name, type.id).btn"
                         >
                             <span class="material-symbols-outlined letter-btn-icon">
                                 add_circle
@@ -156,7 +133,7 @@
                                         Jenis
                                     </th>
                                     <th>
-                                        Status
+                                        No. Surat
                                     </th>
                                     <th class="text-right">
                                         Tanggal
@@ -182,11 +159,8 @@
                                         }}
                                     </td>
                                     <td>
-                                        <span
-                                            class="status-badge"
-                                            :class="statusClass(letter.status)"
-                                        >
-                                            {{ statusLabel(letter.status) }}
+                                        <span class="letter-number-badge">
+                                            {{ letter.letter_number || 'Sedang Diproses' }}
                                         </span>
                                     </td>
                                     <td class="text-right text-muted">
@@ -234,22 +208,8 @@ const formatDate = (date) =>
         year: "numeric",
     });
 
-const statusClass = (status) =>
-    ({
-        pending: "badge-pending",
-        approved: "badge-approved",
-        rejected: "badge-rejected",
-    })[status] || "";
-
-const statusLabel = (status) =>
-    ({
-        pending: "Menunggu",
-        approved: "Disetujui",
-        rejected: "Ditolak",
-    })[status] || status;
-
-const getIconConfig = (name) => {
-    const n = (name || "").toLowerCase();
+const getIconConfig = (name, id = 0) => {
+    const n = name?.toLowerCase() || "";
 
     if (n.includes("tugas")) {
         return {
@@ -269,34 +229,34 @@ const getIconConfig = (name) => {
         };
     }
 
-    if (n.includes("izin") || n.includes("cuti")) {
+    if (n.includes("tugas") || n.includes("st")) {
         return {
-            icon: "event_busy",
+            icon: "assignment",
             bg: "bg-emerald-100",
             text: "text-emerald-600",
             btn: "btn-letter btn-letter-emerald",
         };
     }
 
-    if (n.includes("keterangan")) {
+    if (n.includes("pengantar")) {
         return {
-            icon: "school",
+            icon: "forward_to_inbox",
+            bg: "bg-amber-100",
+            text: "text-amber-600",
+            btn: "btn-letter btn-letter-amber",
+        };
+    }
+
+    if (n.includes("pernyataan")) {
+        return {
+            icon: "verified_user",
             bg: "bg-blue-100",
             text: "text-blue-600",
             btn: "btn-letter btn-letter-blue",
         };
     }
 
-    if (n.includes("undangan")) {
-        return {
-            icon: "mail",
-            bg: "bg-violet-100",
-            text: "text-violet-600",
-            btn: "btn-letter btn-letter-violet",
-        };
-    }
-
-    if (n.includes("keputusan") || n.includes("edaran") || n === "sk") {
+    if (n.includes("sk") || n.includes("keputusan")) {
         return {
             icon: "gavel",
             bg: "bg-rose-100",
@@ -305,86 +265,58 @@ const getIconConfig = (name) => {
         };
     }
 
-    return {
-        icon: "description",
-        bg: "bg-slate-100",
-        text: "text-slate-600",
-        btn: "btn-letter btn-letter-slate",
-    };
-};
-
-const groupedLetterTypes = computed(() => {
-    const groups = new Map();
-
-    for (const type of letterTypes.value) {
-        if (!type.parent_id) {
-            groups.set(type.id, {
-                id: type.id,
-                name: type.name,
-                children: [],
-            });
-        }
+    if (n.includes("mou") || n.includes("kerjasama")) {
+        return {
+            icon: "handshake",
+            bg: "bg-violet-100",
+            text: "text-violet-600",
+            btn: "btn-letter btn-letter-violet",
+        };
     }
 
-    for (const type of letterTypes.value) {
-        if (!type.parent_id || !type.parent) continue;
-
-        if (!groups.has(type.parent.id)) {
-            groups.set(type.parent.id, {
-                id: type.parent.id,
-                name: type.parent.name,
-                children: [],
-            });
-        }
-
-        groups.get(type.parent.id).children.push(type);
+    if (n.includes("ia") || n.includes("implementation")) {
+        return {
+            icon: "architecture",
+            bg: "bg-indigo-100",
+            text: "text-indigo-600",
+            btn: "btn-letter btn-letter-indigo",
+        };
     }
 
-    return Array.from(groups.values()).sort((a, b) => a.name.localeCompare(b.name));
-});
+    if (n.includes("keluar") || n.includes("su")) {
+        return {
+            icon: "outgoing_mail",
+            bg: "bg-cyan-100",
+            text: "text-cyan-600",
+            btn: "btn-letter btn-letter-cyan",
+        };
+    }
 
-const groupDescription = (group) => {
-    return `Klik untuk membuat pengajuan ${group.name}.`;
-};
-
-const statCards = computed(() => {
-    const cards = [
-        {
-            label: "Total",
-            value: stats.value.total,
-            hint: user?.value?.role === "admin" ? "Semua surat di sistem" : "Semua surat yang Anda buat",
-            icon: "description",
-            iconBg: "bg-indigo-50",
-            iconText: "text-indigo-600",
-        },
-        {
-            label: "Pending",
-            value: stats.value.pending,
-            hint: "Masih menunggu proses",
-            icon: "pending_actions",
-            iconBg: "bg-amber-50",
-            iconText: "text-amber-600",
-        },
-        {
-            label: "Disetujui",
-            value: stats.value.approved,
-            hint: "Sudah selesai disetujui",
-            icon: "check_circle",
-            iconBg: "bg-emerald-50",
-            iconText: "text-emerald-600",
-        },
-        {
-            label: "Ditolak",
-            value: stats.value.rejected,
-            hint: "Surat yang ditolak",
-            icon: "cancel",
-            iconBg: "bg-rose-50",
-            iconText: "text-rose-600",
-        },
+    const fallbacks = [
+        { icon: "description", bg: "bg-slate-100", text: "text-slate-600", btn: "btn-letter btn-letter-slate" },
+        { icon: "article", bg: "bg-orange-100", text: "text-orange-600", btn: "btn-letter btn-letter-orange" },
+        { icon: "folder_open", bg: "bg-teal-100", text: "text-teal-600", btn: "btn-letter btn-letter-teal" },
+        { icon: "edit_note", bg: "bg-pink-100", text: "text-pink-600", btn: "btn-letter btn-letter-pink" },
+        { icon: "drafts", bg: "bg-lime-100", text: "text-lime-600", btn: "btn-letter btn-letter-lime" },
     ];
 
-    return cards;
+    return fallbacks[id % fallbacks.length];
+};
+
+const activeLetterTypes = computed(() => {
+    // Tampilkan semua jenis surat yang merupakan sub-jenis (memiliki parent)
+    const parentsWithChildren = new Set(letterTypes.value.filter(t => t.parent_id).map(t => t.parent_id));
+    
+    return letterTypes.value.filter(t => {
+        // Tampilkan jika ini adalah child
+        if (t.parent_id) return true;
+        // Tampilkan jika ini adalah parent tapi tidak punya child sama sekali
+        if (!parentsWithChildren.has(t.id)) return true;
+        return false;
+    }).sort((a, b) => a.name.localeCompare(b.name));
 });
+
+
 
 onMounted(async () => {
     const res = await axios.get("/api/dashboard");
@@ -516,60 +448,7 @@ onMounted(async () => {
     text-transform: capitalize;
 }
 
-/* Stat Cards */
-.stat-card {
-    background: white;
-    border-radius: 1.5rem;
-    padding: 1.5rem;
-    border: 1px solid var(--slate-100);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: box-shadow 0.2s;
-}
 
-.stat-card:hover {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
-}
-
-.stat-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1rem;
-}
-
-.stat-icon-box {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.stat-icon {
-    font-size: 1.5rem;
-}
-
-.stat-label {
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: var(--slate-400);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-}
-
-.stat-value {
-    font-size: 1.875rem;
-    font-weight: 800;
-    color: var(--slate-900);
-}
-
-.stat-hint {
-    font-size: 0.75rem;
-    color: var(--slate-500);
-    margin-top: 0.25rem;
-    font-weight: 500;
-}
 
 /* Section Headers */
 .section-header {
@@ -828,6 +707,21 @@ onMounted(async () => {
     box-shadow: 0 20px 25px -5px rgba(203, 213, 225, 0.3);
     border: 1px solid var(--slate-100);
     overflow: hidden;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.table-wrapper::-webkit-scrollbar {
+    width: 6px;
+}
+
+.table-wrapper::-webkit-scrollbar-thumb {
+    background-color: var(--slate-200);
+    border-radius: 3px;
+}
+
+.table-wrapper::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 .table-scroll {

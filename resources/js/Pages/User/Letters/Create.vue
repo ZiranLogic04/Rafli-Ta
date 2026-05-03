@@ -7,22 +7,16 @@
                     to="/dashboard"
                     class="breadcrumb-back"
                 >
-                    <span class="material-symbols-outlined icon-size-md"
-                        >arrow_back</span
-                    >
+                    <span class="material-symbols-outlined icon-size-md">arrow_back</span>
                 </router-link>
                 <div>
-                    <div
-                        class="breadcrumb-path"
-                    >
+                    <div class="breadcrumb-path">
                         <span>Dashboard</span>
-                        <span class="material-symbols-outlined icon-size-xs"
-                            >chevron_right</span
-                        >
+                        <span class="material-symbols-outlined icon-size-xs">chevron_right</span>
                         <span class="breadcrumb-current">Buat Surat</span>
                     </div>
                     <h1 class="breadcrumb-title">
-                        Pengajuan Dokumen
+                        Buat Surat Baru
                     </h1>
                 </div>
             </div>
@@ -34,243 +28,164 @@
             >
                 <div class="header-glow"></div>
                 <div class="header-content">
+                    <div class="header-icon-box">
+                        <span class="material-symbols-outlined icon-size-2xl">post_add</span>
+                    </div>
                     <div class="header-left">
                         <div class="header-title-row">
                             <h2 class="header-title">
-                                {{ activeLetterType?.name || letterType.name }}
+                                {{ letterType?.name }}
                             </h2>
-                            <span
-                                v-if="activeParentLabel"
-                                class="parent-label"
-                            >
-                                {{ activeParentLabel }}
-                            </span>
-                            <span class="draft-label">Draf Pengajuan</span>
                         </div>
                         <p class="header-desc">
-                            Silakan lengkapi isian surat sesuai format
-                            {{ activeLetterType?.name || letterType.name }}, lalu unggah untuk diajukan.
+                            Silakan isi form di bawah ini untuk mencatat surat baru.
                         </p>
-                    </div>
-                    <div class="header-icon-box">
-                        <span class="material-symbols-outlined icon-size-2xl"
-                            >description</span
-                        >
                     </div>
                 </div>
             </div>
 
             <div class="section-header">
-                <span class="material-symbols-outlined section-icon">analytics</span>
-                <h3 class="section-title">Alur Pengajuan</h3>
+                <span class="material-symbols-outlined section-icon">list_alt</span>
+                <h3 class="section-title">Formulir Pembuatan Surat</h3>
             </div>
 
-            <!-- Step 1: Download -->
+
+
+            <!-- Step 1: Penandatangan -->
             <div class="card step-card">
                 <div class="step-number">1</div>
                 <div class="step-content">
-                    <div class="form-group">
-                        <label class="form-label">
-                            Jenis Surat
-                        </label>
-                        <select
-                            v-if="childTypes.length > 0"
-                            v-model="selectedChildTypeId"
-                            class="form-select"
-                        >
-                            <option :value="null">
-                                -- Pilih jenis surat {{ letterType.name }} --
-                            </option>
-                            <option
-                                v-for="child in childTypes"
-                                :key="child.id"
-                                :value="child.id"
-                            >
-                                {{ child.name }}
-                            </option>
-                        </select>
-                        <div
-                            v-else
-                            class="type-display"
-                        >
-                            {{ letterType.name }}
-                        </div>
-                        <p class="form-hint">
-                            {{ childTypes.length > 0 ? 'Pilih jenis surat yang paling sesuai sebelum mengunduh template dan mengirim pengajuan.' : 'Jenis surat ini tidak memiliki sub-jenis.' }}
-                        </p>
-                    </div>
-
                     <h4 class="step-subtitle">
-                        Unduh Template
+                        Penandatangan
                     </h4>
                     <p class="step-desc">
-                        Silakan unduh template dokumen (.docx) yang disediakan.
+                        Masukkan nama pihak yang akan menandatangani surat ini.
                     </p>
-                    <a
-                        v-if="templateTypeId"
-                        :href="`/api/letters/template/${templateTypeId}`"
-                        class="template-link"
-                    >
-                        <span class="material-symbols-outlined icon-size-md">download</span>
-                        Template_{{
-                            (activeLetterType?.name || letterType.name)?.replace(
-                                / /g,
-                                "_",
-                            )
-                        }}.docx
-                    </a>
-                    <p
-                        v-else-if="childTypes.length > 0"
-                        class="form-hint"
-                    >
-                        Pilih jenis surat terlebih dahulu untuk melihat template
-                        yang sesuai.
-                    </p>
+                    <div class="form-group">
+                        <label class="form-label">Nama Penandatangan</label>
+                        <input
+                            type="text"
+                            v-model="signatoryName"
+                            list="user-list"
+                            class="form-input"
+                            placeholder="Ketik nama penandatangan..."
+                        />
+                        <datalist id="user-list">
+                            <option v-for="t in targets" :key="t.id" :value="t.name"></option>
+                        </datalist>
+                    </div>
                 </div>
             </div>
 
-            <!-- Step 2: Upload -->
+            <!-- Step 2: Tujuan -->
             <div class="card step-card">
                 <div class="step-number">2</div>
                 <div class="step-content">
-                    <h4 class="step-subtitle">
-                        Unggah Dokumen
-                    </h4>
-                    <p class="step-desc">
-                        Gunakan template sebagai acuan bila diperlukan, lalu
-                        unggah surat final Anda ke sistem.
-                    </p>
-                    <div
-                        class="upload-zone"
-                        :class="selectedFile ? 'upload-zone-active' : ''"
-                        @click="$refs.fileInput.click()"
-                    >
-                        <input
-                            ref="fileInput"
-                            type="file"
-                            accept=".docx,.doc,.pdf"
-                            class="file-input-hidden"
-                            @change="onFileSelect"
-                        />
-                        <span class="material-symbols-outlined upload-icon">cloud_upload</span>
-                        <div class="upload-text">
-                            <p class="upload-main">Klik atau seret file</p>
-                            <p class="upload-hint">
-                                Format: .DOCX, .DOC, .PDF (Maks 5MB)
-                            </p>
+                    <h4 class="step-subtitle">Tujuan</h4>
+                    <p class="step-desc">Pilih jabatan untuk menentukan alur tujuan surat.</p>
+
+                    <div class="form-group">
+                        <label class="form-label">Jabatan Tujuan</label>
+                        <select v-model="targetRoleSelection" class="form-select">
+                            <option value="">-- Pilih Jabatan --</option>
+                            <option value="direktur">Direktur</option>
+                            <option value="wadir">Wadir</option>
+                            <option value="kaprodi">Kaprodi</option>
+                            <option value="staf">Staf TU</option>
+                            <option value="dosen">Dosen</option>
+                            <option value="lainnya">Lainnya (Ketik Manual)...</option>
+                        </select>
+                    </div>
+
+                    <!-- Filter Wadir: 1, 2, 3 -->
+                    <template v-if="targetRoleSelection === 'wadir'">
+                        <div class="form-group">
+                            <label class="form-label">Pilih Wadir (1, 2, atau 3)</label>
+                            <select v-model="targetWadirLevelSelection" class="form-select">
+                                <option value="">-- Pilih Level --</option>
+                                <option value="1">Wadir 1</option>
+                                <option value="2">Wadir 2</option>
+                                <option value="3">Wadir 3</option>
+                            </select>
                         </div>
-                    </div>
-                    <div
-                        v-if="selectedFile"
-                        class="file-preview"
-                    >
-                        <span class="material-symbols-outlined">description</span>
-                        <span class="file-name">{{ selectedFile.name }}</span>
-                        <span
-                            class="material-symbols-outlined file-remove"
-                            @click.stop="selectedFile = null"
-                            >close</span
-                        >
-                    </div>
+                    </template>
+
+                    <!-- Filter Dosen & Kaprodi: Pilih Prodi -->
+                    <template v-if="targetRoleSelection === 'dosen' || targetRoleSelection === 'kaprodi'">
+                        <div class="form-group">
+                            <label class="form-label">Pilih Prodi {{ targetRoleSelection === 'dosen' ? 'Dosen' : 'Kaprodi' }}</label>
+                            <select v-model="targetProdiSelection" class="form-select">
+                                <option value="">-- Pilih Prodi --</option>
+                                <option v-for="p in prodiList" :key="p" :value="p">{{ p }}</option>
+                            </select>
+                        </div>
+                    </template>
+
+                    <template v-if="showNameDropdown">
+                        <div class="form-group">
+                            <label class="form-label">Nama Tujuan</label>
+                            
+                            <!-- Direct Mode (Otomatis jika cuma 1, kecuali Staf) -->
+                            <div v-if="isDirectMode" class="direct-name-display">
+                                <span class="material-symbols-outlined">person</span>
+                                <div>
+                                    <div class="direct-name">{{ filteredTargets[0].name }}</div>
+                                    <div class="direct-detail">{{ filteredTargets[0].jurusan || targetRoleSelection.toUpperCase() }}</div>
+                                </div>
+                            </div>
+
+                            <!-- Jika jabatan lain atau lebih dari 1 orang, tampilkan dropdown -->
+                            <select v-else v-model="targetSelection" class="form-select">
+                                <option value="">-- Pilih Nama --</option>
+                                <option v-for="t in filteredTargets" :key="t.id" :value="t.id">
+                                    {{ t.name }} {{ t.jurusan ? ' - ' + t.jurusan : '' }}
+                                </option>
+                            </select>
+                        </div>
+                    </template>
+
+
+                    <template v-if="targetRoleSelection === 'lainnya'">
+                        <div class="form-group">
+                            <label class="form-label">Nama Tujuan (Instansi/Pihak)</label>
+                            <input
+                                type="text"
+                                v-model="targetName"
+                                class="form-input"
+                                placeholder="Contoh: LLDIKTI Wilayah IV"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Jurusan/Prodi/Detail <span class="form-hint">(Opsional)</span></label>
+                            <input
+                                type="text"
+                                v-model="targetJurusan"
+                                class="form-input"
+                                placeholder="Contoh: Administrasi Perkantoran"
+                            />
+                        </div>
+                    </template>
                 </div>
             </div>
 
-            <!-- Step 3: Target Approver -->
-            <div class="card">
-                <div class="step-header">
-                    <div class="step-number">3</div>
-                    <div>
-                        <h4 class="step-subtitle">
-                            Pilih Tujuan
-                        </h4>
-                        <p class="step-desc">
-                            Pilih kepada siapa surat ini ditujukan.
-                        </p>
-                    </div>
-                </div>
-                <div class="form-stack">
+            <!-- Step 3: Keterangan -->
+            <div class="card step-card">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4 class="step-subtitle">
+                        Keterangan
+                    </h4>
+                    <p class="step-desc">
+                        Tambahkan catatan atau keterangan pengajuan surat ini (opsional).
+                    </p>
                     <div class="form-group">
-                        <label class="form-label">Kepada</label>
-                        <select
-                            v-model="targetRole"
-                            class="form-select"
-                        >
-                            <option value="">-- Pilih tujuan --</option>
-                            <option
-                                v-for="r in targetRoles"
-                                :key="r.value"
-                                :value="r.value"
-                            >
-                                {{ r.label }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <div v-if="targetRole === 'wadir'" class="form-group">
-                        <label class="form-label">Pilihan Wadir</label>
-                        <select
-                            v-model="targetWadirLevel"
-                            class="form-select"
-                        >
-                            <option :value="null">-- Pilih Wadir 1-3 --</option>
-                            <option
-                                v-for="w in wadirLevels"
-                                :key="w"
-                                :value="w"
-                            >
-                                Wadir {{ w }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <div v-if="['kaprodi', 'dosen'].includes(targetRole)" class="form-group">
-                        <label class="form-label">Jurusan</label>
-                        <select
-                            v-model="targetJurusan"
-                            class="form-select"
-                        >
-                            <option value="">-- Pilih jurusan --</option>
-                            <option
-                                v-for="j in jurusanOptions"
-                                :key="j"
-                                :value="j"
-                            >
-                                {{ j }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <div v-if="targetRole" class="form-group">
-                        <label class="form-label">Nama Tujuan</label>
-                        <select
-                            v-model="targetUserId"
-                            class="form-select"
-                        >
-                            <option :value="null">
-                                -- Pilih nama tujuan --
-                            </option>
-                            <option
-                                v-for="t in filteredTargets"
-                                :key="t.id"
-                                :value="t.id"
-                            >
-                                {{ targetLabel(t) }}
-                            </option>
-                        </select>
-                        <p
-                            v-if="filteredTargets.length === 1"
-                            class="hint-success"
-                        >
-                            Sistem otomatis memilih tujuan karena hanya ada
-                            satu akun yang cocok.
-                        </p>
-                        <p
-                            v-else-if="targetRole && filteredTargets.length > 1"
-                            class="form-hint"
-                        >
-                            Terdapat lebih dari satu akun yang cocok. Pilih
-                            nama tujuan spesifik.
-                        </p>
+                        <label class="form-label">Keterangan / Catatan</label>
+                        <textarea
+                            v-model="notes"
+                            class="form-input"
+                            rows="3"
+                            placeholder="Contoh: Pengajuan PKL Mahasiswa, Izin Kegiatan, dll..."
+                        ></textarea>
                     </div>
                 </div>
             </div>
@@ -281,17 +196,15 @@
                 <div class="step-number submit-step-number">4</div>
                 <div class="step-content submit-content">
                     <h4 class="step-subtitle">
-                        Ajukan Persetujuan
+                        Ajukan Surat
                     </h4>
-                    <p class="step-desc">
-                        Pastikan semua data sudah benar.
-                    </p>
                     <button
                         @click="submitLetter"
                         :disabled="
-                            !selectedFile ||
-                            !targetRole ||
-                            (childTypes.length > 0 && !selectedChildTypeId) ||
+                            !signatoryName ||
+                            !targetRoleSelection ||
+                            (targetRoleSelection !== 'lainnya' && !targetSelection) ||
+                            (targetRoleSelection === 'lainnya' && !targetName) ||
                             submitting
                         "
                         class="submit-btn"
@@ -299,18 +212,12 @@
                         <span
                             v-if="submitting"
                             class="material-symbols-outlined animate-spin"
-                            >progress_activity</span
-                        >
+                        >progress_activity</span>
                         <span
-                            class="material-symbols-outlined icon-size-md"
                             v-else
-                            >send</span
-                        >
-                        {{
-                            submitting
-                                ? "Mengirim..."
-                                : "Kirim Pengajuan Sekarang"
-                        }}
+                            class="material-symbols-outlined icon-size-md"
+                        >send</span>
+                        {{ submitting ? "Menyimpan..." : "Ajukan" }}
                     </button>
                 </div>
             </div>
@@ -327,144 +234,155 @@ import AppLayout from "../../../Layouts/AppLayout.vue";
 const route = useRoute();
 const router = useRouter();
 const showFlash = inject("showFlash");
+
 const letterType = ref(null);
-const childTypes = ref([]);
-const selectedChildTypeId = ref(null);
-const selectedFile = ref(null);
-const submitting = ref(false);
 const targets = ref([]);
-const targetRoles = ref([]);
-const wadirLevels = ref([]);
-const jurusanOptions = ref([]);
-const targetRole = ref("");
-const targetUserId = ref(null);
-const targetWadirLevel = ref(null);
+const prodis = ref([]);
+
+const signatoryName = ref("");
+const targetRoleSelection = ref("");
+const targetProdiSelection = ref(""); 
+const targetWadirLevelSelection = ref(""); // Khusus filter Wadir
+const targetSelection = ref("");
+const targetName = ref("");
 const targetJurusan = ref("");
+const notes = ref("");
 
-const activeLetterType = computed(() => {
-    if (childTypes.value.length > 0 && selectedChildTypeId.value) {
-        return childTypes.value.find((child) => child.id === selectedChildTypeId.value) || null;
-    }
-
-    return letterType.value;
+const needsProdiSelection = computed(() => {
+    // Cek apakah di format nomor surat ada tag {prodi}/{Prodi} atau {extra}
+    const format = (letterType.value?.code_format || "").toLowerCase();
+    return format.includes('{prodi}') || format.includes('{extra}');
 });
 
-const activeParentLabel = computed(() => {
-    if (childTypes.value.length > 0 && letterType.value) {
-        return letterType.value.name;
-    }
-
-    return activeLetterType.value?.parent?.name || letterType.value?.parent?.name || "";
-});
-
-const templateTypeId = computed(() => activeLetterType.value?.id || null);
+const prodiList = computed(() => prodis.value.map(p => p.name));
 
 const filteredTargets = computed(() => {
-    let list = targets.value;
-
-    if (targetRole.value) {
-        list = list.filter((t) => t.role === targetRole.value);
+    if (!targetRoleSelection.value) return [];
+    const roleSearch = targetRoleSelection.value.toLowerCase();
+    let result = targets.value.filter(t => t.role && t.role.toLowerCase() === roleSearch);
+    
+    // Filter Wadir: 1, 2, 3
+    if (roleSearch === 'wadir' && targetWadirLevelSelection.value) {
+        result = result.filter(t => t.wadir_level == targetWadirLevelSelection.value);
     }
 
-    if (targetRole.value === "wadir" && targetWadirLevel.value) {
-        list = list.filter(
-            (t) => Number(t.wadir_level) === Number(targetWadirLevel.value),
-        );
+    // Filter Dosen & Kaprodi: Prodi
+    if ((roleSearch === 'dosen' || roleSearch === 'kaprodi') && targetProdiSelection.value) {
+        result = result.filter(t => t.jurusan === targetProdiSelection.value);
     }
-
-    if (
-        ["kaprodi", "dosen"].includes(targetRole.value) &&
-        targetJurusan.value
-    ) {
-        list = list.filter(
-            (t) =>
-                (t.jurusan || "").toLowerCase() ===
-                targetJurusan.value.toLowerCase(),
-        );
-    }
-
-    return list;
+    
+    return result;
 });
 
-watch(targetRole, (role) => {
-    targetUserId.value = null;
-    if (role !== "wadir") targetWadirLevel.value = null;
-    if (!["kaprodi", "dosen"].includes(role)) targetJurusan.value = "";
+const showNameDropdown = computed(() => {
+    if (!targetRoleSelection.value || targetRoleSelection.value === 'lainnya') return false;
+    
+    // Jika Wadir, harus pilih level dulu
+    if (targetRoleSelection.value === 'wadir') return !!targetWadirLevelSelection.value;
+    
+    // Jika Dosen atau Kaprodi, harus pilih prodi dulu
+    if (targetRoleSelection.value === 'dosen' || targetRoleSelection.value === 'kaprodi') {
+        return !!targetProdiSelection.value;
+    }
+    
+    // Selain itu (Direktur, Staf), langsung muncul
+    return true;
 });
 
-watch(filteredTargets, (list) => {
-    if (list.length === 1) {
-        targetUserId.value = list[0].id;
-        return;
+const isDirectMode = computed(() => {
+    if (filteredTargets.value.length !== 1) return false;
+    if (!targetRoleSelection.value) return false;
+    const role = targetRoleSelection.value.toLowerCase();
+    
+    // Staf TU harus pilih manual meskipun cuma 1
+    if (role === 'staf') return false;
+    
+    // Direktur, Wadir, Kaprodi, Dosen otomatis jika cuma 1
+    return true;
+});
+
+// Auto-select menggunakan isDirectMode (pantau filteredTargets agar reaktif saat isi array berubah)
+watch(filteredTargets, (newTargets) => {
+    // 1. Reset selection jika yang dipilih saat ini tidak ada di daftar target yang baru
+    if (targetSelection.value && !newTargets.some(t => t.id === targetSelection.value)) {
+        targetSelection.value = "";
     }
 
-    if (!list.some((t) => t.id === targetUserId.value)) {
-        targetUserId.value = null;
+    // 2. Auto-select jika masuk mode Direct
+    if (isDirectMode.value && newTargets.length === 1) {
+        targetSelection.value = newTargets[0].id;
+    }
+}, { immediate: true });
+
+watch(targetRoleSelection, (newRole) => {
+    // Reset filters saat jabatan berubah
+    targetProdiSelection.value = "";
+    targetWadirLevelSelection.value = "";
+    targetName.value = "";
+    targetJurusan.value = "";
+});
+
+// Watcher auto-select targetSelection dihapus karena sudah ada di atas
+
+// Auto-select if only 1 person in role
+watch(filteredTargets, (newTargets) => {
+    if (newTargets.length === 1) {
+        targetSelection.value = newTargets[0].id;
+    } else {
+        targetSelection.value = "";
     }
 });
 
-const onFileSelect = (e) => {
-    selectedFile.value = e.target.files[0] || null;
-};
+const submitting = ref(false);
 
-const targetLabel = (t) => {
-    if (t.role === "wadir" && t.wadir_level)
-        return `${t.name} (Wadir ${t.wadir_level})`;
-    if (["kaprodi", "dosen"].includes(t.role) && t.jurusan)
-        return `${t.name} (${t.jurusan})`;
-    return `${t.name} (${t.role})`;
-};
+const activeLetterType = computed(() => letterType.value);
 
 const submitLetter = async () => {
-    if (!selectedFile.value || !letterType.value) return;
+    if (!letterType.value) return;
 
-    if (childTypes.value.length > 0 && !selectedChildTypeId.value) {
-        showFlash("Pilih jenis surat terlebih dahulu.", "error");
+    if (!signatoryName.value.trim()) {
+        showFlash("Nama penandatangan wajib diisi.", "error");
         return;
     }
 
-    if (!targetRole.value) {
-        showFlash("Pilih role tujuan terlebih dahulu.", "error");
+    if (!targetSelection.value) {
+        showFlash("Pilih tujuan surat terlebih dahulu.", "error");
         return;
     }
 
-    if (targetRole.value === "wadir" && !targetWadirLevel.value) {
-        showFlash("Pilih Wadir 1-3.", "error");
+    if (targetSelection.value === "lainnya" && !targetName.value.trim()) {
+        showFlash("Nama tujuan wajib diisi jika memilih opsi Lainnya.", "error");
         return;
     }
 
-    if (["kaprodi", "dosen"].includes(targetRole.value)) {
-        if (!targetJurusan.value) {
-            showFlash("Pilih jurusan tujuan.", "error");
-            return;
-        }
-        if (!targetUserId.value) {
-            showFlash("Pilih nama tujuan spesifik.", "error");
-            return;
-        }
-    }
-
-    if (!targetUserId.value && filteredTargets.value.length > 1) {
-        showFlash("Pilih nama tujuan spesifik.", "error");
-        return;
-    }
+    // Validasi input prodi tambahan dihapus
 
     submitting.value = true;
     try {
-        const fd = new FormData();
-        fd.append("letter_type_id", activeLetterType.value?.id || letterType.value.id);
-        fd.append("target_role", targetRole.value);
-        if (targetUserId.value) fd.append("target_user_id", targetUserId.value);
-        if (targetWadirLevel.value)
-            fd.append("target_wadir_level", String(targetWadirLevel.value));
-        if (targetJurusan.value)
-            fd.append("target_jurusan", targetJurusan.value);
-        fd.append("file", selectedFile.value);
-        await axios.post("/api/letters", fd);
-        showFlash("Surat berhasil diajukan!");
+        const payload = {
+            letter_type_id: activeLetterType.value?.id || letterType.value.id,
+            signatory_name: signatoryName.value,
+            notes: notes.value,
+        };
+
+        // Otomatis tentukan target_jurusan untuk nomor surat
+        if (targetRoleSelection.value === 'lainnya') {
+            payload.target_name = targetName.value;
+            payload.target_jurusan = targetJurusan.value;
+        } else {
+            payload.target_user_id = targetSelection.value;
+            // Ambil jurusan dari user yang dipilih untuk nomor surat
+            const selectedUser = targets.value.find(t => t.id === targetSelection.value);
+            if (selectedUser && selectedUser.jurusan) {
+                payload.target_jurusan = selectedUser.jurusan;
+            }
+        }
+
+        await axios.post("/api/letters", payload);
+        showFlash("Surat berhasil dicatat! Nomor surat telah di-generate.");
         router.push("/letters");
     } catch (e) {
-        showFlash(e.response?.data?.message || "Gagal mengirim.", "error");
+        showFlash(e.response?.data?.message || "Gagal menyimpan surat.", "error");
     } finally {
         submitting.value = false;
     }
@@ -477,13 +395,8 @@ onMounted(async () => {
             params: { type_id: typeId },
         });
         letterType.value = res.data.letterType;
-        childTypes.value = res.data.childTypes || [];
-        selectedChildTypeId.value =
-            childTypes.value.length === 1 ? childTypes.value[0].id : null;
         targets.value = res.data.targets || [];
-        targetRoles.value = res.data.targetRoles || [];
-        wadirLevels.value = res.data.wadirLevels || [1, 2, 3];
-        jurusanOptions.value = res.data.jurusanOptions || [];
+        prodis.value = res.data.prodis || [];
     }
 });
 </script>
@@ -545,137 +458,98 @@ onMounted(async () => {
 
 /* Header Card */
 .header-card {
-    padding: 2rem;
-    border: 1px solid var(--slate-100);
-    box-shadow: 0 20px 25px -5px rgba(203, 213, 225, 0.3);
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-    align-items: flex-start;
-    justify-content: space-between;
     position: relative;
+    background: white;
+    padding: 1.25rem 1.75rem;
+    border-radius: 1.25rem;
     overflow: hidden;
-    transition: box-shadow 0.3s;
-}
-
-.header-card:hover {
-    box-shadow: 0 25px 50px -12px rgba(203, 213, 225, 0.5);
-}
-
-@media (min-width: 768px) {
-    .header-card {
-        padding: 2rem;
-        flex-direction: row;
-    }
+    border: 1px solid var(--slate-100);
+    box-shadow: 0 10px 15px -3px rgba(203, 213, 225, 0.2);
 }
 
 .header-glow {
     position: absolute;
     top: 0;
     right: 0;
-    width: 16rem;
-    height: 16rem;
-    background: rgba(79, 70, 229, 0.05);
+    width: 20rem;
+    height: 20rem;
+    background: linear-gradient(135deg, rgba(79, 70, 229, 0.08) 0%, rgba(124, 58, 237, 0.08) 100%);
     border-radius: 50%;
-    margin-right: -5rem;
-    margin-top: -5rem;
-    filter: blur(40px);
-    transition: all 0.3s;
-}
-
-.header-card:hover .header-glow {
-    background: rgba(79, 70, 229, 0.1);
+    margin-right: -8rem;
+    margin-top: -8rem;
+    filter: blur(60px);
 }
 
 .header-content {
     position: relative;
     z-index: 10;
-    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.header-icon-box {
+    width: 3.5rem;
+    height: 3.5rem;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.1);
+}
+
+.header-left {
+    display: flex;
+    flex-direction: column;
 }
 
 .header-title-row {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-bottom: 0.75rem;
-    flex-wrap: wrap;
 }
 
 .header-title {
     font-size: 1.5rem;
     font-weight: 800;
     color: var(--slate-900);
-}
-
-@media (min-width: 768px) {
-    .header-title {
-        font-size: 1.875rem;
-    }
-}
-
-.parent-label {
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    background: var(--indigo-50);
-    color: var(--indigo-600);
-    font-size: 0.625rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    border: 1px solid var(--indigo-100);
-}
-
-.draft-label {
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    background: var(--slate-100);
-    color: var(--slate-500);
-    font-size: 0.625rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    border: 1px solid var(--slate-200);
+    letter-spacing: -0.01em;
 }
 
 .header-desc {
     color: var(--slate-500);
+    font-size: 0.875rem;
     font-weight: 500;
 }
 
-.header-icon-box {
-    width: 4rem;
-    height: 4rem;
-    border-radius: 1rem;
-    background: var(--indigo-50);
-    color: var(--indigo-600);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    border: 1px solid var(--indigo-100);
-    position: relative;
-    z-index: 10;
-}
-
-/* Section Header */
 .section-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 1rem;
     padding-left: 0.5rem;
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
 }
 
 .section-icon {
     color: var(--primary);
-    font-size: 1.25rem;
+    font-variation-settings: 'FILL' 1;
 }
 
 .section-title {
-    font-size: 1.125rem;
-    font-weight: 700;
+    font-size: 1.25rem;
+    font-weight: 800;
     color: var(--slate-900);
+    letter-spacing: -0.01em;
+}
+
+/* Steps Layout */
+.step-card {
+    display: flex;
+    gap: 2rem;
+    padding: 2.5rem;
+    border-radius: 2rem;
 }
 
 /* Step Cards */
@@ -684,11 +558,13 @@ onMounted(async () => {
     flex-direction: column;
     gap: 1.5rem;
     transition: border-color 0.2s;
+    padding: 1.5rem;
 }
 
 @media (min-width: 768px) {
     .step-card {
         flex-direction: row;
+        padding: 2rem;
     }
 }
 
@@ -729,25 +605,34 @@ onMounted(async () => {
 
 .form-hint {
     font-size: 0.6875rem;
-    color: var(--slate-500);
-    margin-top: 0.5rem;
+    color: var(--slate-400);
+    font-weight: 400;
 }
 
-.hint-success {
-    font-size: 0.6875rem;
-    color: var(--emerald-600);
-    margin-top: 0.5rem;
-}
-
-.type-display {
+.form-input,
+.form-select {
     width: 100%;
     padding: 0.75rem 1rem;
     border-radius: 0.75rem;
-    background: var(--slate-50);
     border: 1px solid var(--slate-200);
+    background-color: var(--slate-50);
+    color: var(--slate-900);
     font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--slate-700);
+    transition: all 0.2s;
+    font-family: inherit;
+}
+
+.form-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: var(--primary);
+    background-color: white;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+}
+
+textarea.form-input {
+    resize: vertical;
+    min-height: 80px;
 }
 
 .step-subtitle {
@@ -763,205 +648,131 @@ onMounted(async () => {
     margin-bottom: 1.25rem;
 }
 
-/* Template Link */
-.template-link {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1.25rem;
-    border-radius: 0.75rem;
-    background: var(--slate-50);
-    border: 1px solid var(--slate-200);
-    color: var(--slate-700);
-    font-weight: 700;
-    font-size: 0.875rem;
-    text-decoration: none;
-    transition: all 0.2s;
-}
-
-.template-link:hover {
-    background: var(--primary);
-    color: white;
-    border-color: var(--primary);
-}
-
-.template-link .material-symbols-outlined {
-    color: var(--slate-400);
-    transition: color 0.2s;
-}
-
-.template-link:hover .material-symbols-outlined {
-    color: white;
-}
-
-/* Upload Zone */
-.upload-zone {
-    position: relative;
-    width: 100%;
-    border-radius: 1rem;
-    border: 2px dashed var(--slate-200);
-    background: var(--slate-50);
-    padding: 2rem;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 0.75rem;
-    transition: all 0.2s;
-    cursor: pointer;
-}
-
-.upload-zone:hover {
-    border-color: var(--primary);
-    background: rgba(79, 70, 229, 0.05);
-}
-
-.upload-zone-active {
-    border-color: var(--primary) !important;
-    background: rgba(79, 70, 229, 0.05) !important;
-}
-
-.upload-icon {
-    font-size: 2.5rem;
-    color: var(--slate-300);
-}
-
-.upload-text {
-    text-align: center;
-}
-
-.upload-main {
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: var(--slate-700);
-}
-
-.upload-hint {
-    font-size: 0.6875rem;
-    font-weight: 500;
-    color: var(--slate-400);
-    margin-top: 0.25rem;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-}
-
-/* File Preview */
-.file-preview {
-    margin-top: 1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 1rem;
-    border-radius: 0.75rem;
-    background: rgba(79, 70, 229, 0.1);
-    border: 1px solid rgba(79, 70, 229, 0.2);
-    color: var(--primary);
-}
-
-.file-name {
-    font-weight: 700;
-    font-size: 0.875rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.file-remove {
-    margin-left: auto;
-    font-size: 1.125rem;
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.file-remove:hover {
-    color: var(--rose-500);
-}
-
-/* Step Header (Step 3) */
-.step-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.form-stack {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
 /* Submit Card */
 .submit-card {
     position: relative;
     overflow: hidden;
+    background: linear-gradient(to right, #ffffff, #F8FAFC);
+    border: 1px solid var(--indigo-100);
+    align-items: center;
 }
 
 .submit-glow {
     position: absolute;
-    top: 0;
-    right: 0;
-    width: 8rem;
-    height: 8rem;
-    background: rgba(16, 185, 129, 0.1);
-    border-radius: 50%;
-    margin-right: -2.5rem;
-    margin-top: -2.5rem;
-    filter: blur(20px);
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 4rem;
+    background: linear-gradient(to top, rgba(79, 70, 229, 0.05), transparent);
+    pointer-events: none;
 }
 
 .submit-step-number {
-    position: relative;
-    z-index: 10;
+    background: linear-gradient(135deg, #4F46E5, #6366F1);
+}
+
+.ia-special-prodi {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 2px dashed var(--slate-100);
+}
+
+.highlight-select {
+    border-color: var(--primary) !important;
+    background-color: var(--indigo-50) !important;
+    font-weight: 700;
+}
+
+.direct-name-display {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, var(--indigo-50), white);
+    border: 2px solid var(--primary);
+    border-radius: 1rem;
+    color: var(--slate-900);
+}
+
+.direct-name-display .material-symbols-outlined {
+    font-size: 2rem;
+    color: var(--primary);
+}
+
+.direct-name {
+    font-size: 1.125rem;
+    font-weight: 800;
+}
+
+.direct-detail {
+    font-size: 0.875rem;
+    color: var(--slate-500);
 }
 
 .submit-content {
-    position: relative;
-    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+@media (min-width: 768px) {
+    .submit-content {
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
 }
 
 .submit-btn {
-    width: 100%;
-    padding: 1rem 1.5rem;
-    background: var(--primary);
-    color: white;
-    font-size: 0.875rem;
-    font-weight: 700;
-    border-radius: 1rem;
-    box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.2);
-    transition: all 0.2s;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    padding: 1.25rem 3.5rem;
+    background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+    color: white !important;
     border: none;
+    border-radius: 1.25rem;
+    font-size: 1.25rem;
+    font-weight: 800;
     cursor: pointer;
+    box-shadow: 0 15px 25px -5px rgba(79, 70, 229, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-top: 1rem;
+}
+
+@media (min-width: 768px) {
+    .submit-btn {
+        margin-top: 0;
+    }
 }
 
 .submit-btn:hover:not(:disabled) {
-    background: var(--primary-dark);
+    background: linear-gradient(135deg, var(--primary-hover), var(--primary-dark)) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 20px 30px -5px rgba(79, 70, 229, 0.5);
+}
+
+.submit-btn:active:not(:disabled) {
+    transform: translateY(0);
 }
 
 .submit-btn:disabled {
-    opacity: 0.5;
+    background: var(--slate-300);
+    box-shadow: none;
     cursor: not-allowed;
+    opacity: 0.7;
 }
 
-/* Hidden file input */
-.file-input-hidden {
-    display: none;
+.animate-spin {
+    animation: spin 1s linear infinite;
 }
 
-/* Icon sizes */
-.icon-size-md {
-    font-size: 20px;
-}
-
-.icon-size-xs {
-    font-size: 14px;
-}
-
-.icon-size-2xl {
-    font-size: 32px;
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 </style>

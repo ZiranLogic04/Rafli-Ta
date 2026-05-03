@@ -35,7 +35,11 @@ class LetterController extends Controller
                         'name' => $letter->type->parent->name,
                     ] : null,
                 ] : null,
-                'target' => $this->formatTargetInfo($letter),
+                'target' => $letter->target_info,
+                'target_info' => $letter->target_info,
+                'signatory_name' => $letter->signatory_name,
+                'notes' => $letter->notes,
+                'file_path' => $letter->file_path,
             ];
         });
 
@@ -51,30 +55,16 @@ class LetterController extends Controller
         ])->findOrFail($typeId);
 
         $targets = \App\Models\User::query()
-            ->where('id', '!=', auth()->id())
-            ->whereIn('role', ['direktur', 'wadir', 'kaprodi', 'staf', 'dosen'])
             ->orderBy('name')
-            ->get(['id', 'name', 'role', 'code', 'wadir_level', 'jurusan']);
+            ->get(['id', 'name', 'role', 'jurusan', 'wadir_level']);
 
-        $jurusanOptions = $targets
-            ->pluck('jurusan')
-            ->filter(fn ($j) => ! empty($j))
-            ->unique()
-            ->values();
+        $prodis = \App\Models\Prodi::orderBy('name')->get();
 
         return response()->json([
             'letterType' => $letterType,
             'childTypes' => $letterType->children,
-            'targetRoles' => [
-                ['value' => 'direktur', 'label' => 'Direktur'],
-                ['value' => 'wadir', 'label' => 'Wadir'],
-                ['value' => 'kaprodi', 'label' => 'Kaprodi'],
-                ['value' => 'staf', 'label' => 'Staf TU'],
-                ['value' => 'dosen', 'label' => 'Dosen'],
-            ],
-            'wadirLevels' => [1, 2, 3],
-            'jurusanOptions' => $jurusanOptions,
             'targets' => $targets,
+            'prodis' => $prodis,
         ]);
     }
 
@@ -82,85 +72,152 @@ class LetterController extends Controller
     {
         $request->validate([
             'letter_type_id' => 'required|exists:letter_types,id',
-            'target_role' => 'required|in:direktur,wadir,kaprodi,staf,dosen',
+            'signatory_name' => 'required|string|max:255',
             'target_user_id' => 'nullable|exists:users,id',
-            'target_wadir_level' => 'nullable|integer|in:1,2,3',
+            'target_name' => 'nullable|string|max:255',
             'target_jurusan' => 'nullable|string|max:255',
-            'file' => 'required|mimes:pdf,docx,doc|max:5120',
+            'notes' => 'nullable|string',
         ]);
 
-        if ($request->target_role === 'wadir' && ! $request->filled('target_wadir_level')) {
-            return response()->json(['message' => 'Target Wadir wajib memilih level 1-3.'], 422);
-        }
-
-        if (in_array($request->target_role, ['kaprodi', 'dosen']) && ! $request->filled('target_jurusan')) {
-            return response()->json(['message' => 'Target ini wajib memilih jurusan.'], 422);
+        if (!$request->target_user_id && !$request->target_name) {
+            return response()->json(['message' => 'Tujuan surat harus diisi.'], 422);
         }
 
         $targetUser = null;
         if ($request->filled('target_user_id')) {
             $targetUser = \App\Models\User::find($request->target_user_id);
-        } else {
-            $candidateQuery = \App\Models\User::query()
-                ->where('id', '!=', auth()->id())
-                ->where('role', $request->target_role);
-
-            if ($request->target_role === 'wadir' && $request->filled('target_wadir_level')) {
-                $candidateQuery->where('wadir_level', $request->target_wadir_level);
-            }
-
-            if (in_array($request->target_role, ['kaprodi', 'dosen']) && $request->filled('target_jurusan')) {
-                $candidateQuery->whereRaw('LOWER(jurusan) = ?', [strtolower((string) $request->target_jurusan)]);
-            }
-
-            $candidates = $candidateQuery->get();
-
-            if ($candidates->count() === 1) {
-                $targetUser = $candidates->first();
-            } elseif ($candidates->count() === 0) {
-                return response()->json(['message' => 'Tidak ada akun tujuan yang cocok untuk pilihan ini.'], 422);
-            } elseif ($candidates->count() > 1) {
-                return response()->json(['message' => 'Terdapat lebih dari satu tujuan yang cocok. Pilih nama tujuan spesifik.'], 422);
-            }
         }
 
-        if ($targetUser) {
-            if (! $targetUser || $targetUser->role !== $request->target_role) {
-                return response()->json(['message' => 'Nama tujuan tidak sesuai role yang dipilih.'], 422);
-            }
+        $letterType = \App\Models\LetterType::findOrFail($request->letter_type_id);
 
-            if ($request->target_role === 'wadir' && (int) $targetUser->wadir_level !== (int) $request->target_wadir_level) {
-                return response()->json(['message' => 'Nama Wadir tidak sesuai pilihan level.'], 422);
-            }
-
-            if (in_array($request->target_role, ['kaprodi', 'dosen'])) {
-                $userJurusan = trim((string) $targetUser->jurusan);
-                $inputJurusan = trim((string) $request->target_jurusan);
-                if (mb_strtolower($userJurusan) !== mb_strtolower($inputJurusan)) {
-                    return response()->json(['message' => 'Nama tujuan tidak sesuai jurusan yang dipilih.'], 422);
-                }
-            }
+        // Ambil jurusan langsung dari apa yang dikirim formulir
+        $jurusan = $request->target_jurusan;
+        
+        $letterNumber = $this->generateLetterNumber($letterType, $jurusan);
+        
+        // Check if letter number already exists
+        if (\App\Models\Letter::where('letter_number', $letterNumber)->exists()) {
+            return response()->json(['message' => 'Nomor surat ' . $letterNumber . ' sudah ada di sistem. Mohon cek kembali.'], 422);
         }
-
-        $file = $request->file('file');
-        $filename = time().'_'.auth()->id().'_'.$file->getClientOriginalName();
-        $path = $file->storeAs('letters/'.date('Y/m'), $filename);
 
         $letter = \App\Models\Letter::create([
             'user_id' => auth()->id(),
             'user_name' => auth()->user()->name,
             'letter_type_id' => $request->letter_type_id,
             'target_user_id' => $targetUser?->id,
-            'target_name' => $targetUser?->name,
-            'target_role' => $request->target_role,
-            'target_wadir_level' => $request->target_role === 'wadir' ? $request->target_wadir_level : null,
-            'target_jurusan' => in_array($request->target_role, ['kaprodi', 'dosen']) ? $request->target_jurusan : null,
-            'file_path' => $path,
-            'status' => 'pending',
-            'current_approver_role' => $request->target_role,
+            'target_name' => $targetUser ? $targetUser->name : $request->target_name,
+            'target_role' => $targetUser ? $targetUser->role : null,
+            'target_wadir_level' => $targetUser ? $targetUser->wadir_level : null,
+            'target_jurusan' => $jurusan,
+            'signatory_name' => $request->signatory_name,
+            'notes' => $request->notes,
+            'status' => 'approved',
+            'letter_number' => $letterNumber,
+            'approved_at' => now(),
+            'approved_by' => auth()->id(), // Auto-approved by creator/system
         ]);
 
-        return response()->json(['message' => 'Surat berhasil diajukan.', 'letter' => $letter]);
+        return response()->json(['message' => 'Surat berhasil dicatat.', 'letter' => $letter]);
+    }
+
+    public function updateLetterNumber(Request $request, \App\Models\Letter $letter)
+    {
+        $request->validate([
+            'letter_number' => 'required|string|unique:letters,letter_number,' . $letter->id,
+        ]);
+
+        $letter->update([
+            'letter_number' => $request->letter_number
+        ]);
+
+        return response()->json(['message' => 'Nomor surat berhasil diperbarui.']);
+    }
+
+    private function generateLetterNumber($letterType, $targetJurusan = null)
+    {
+        $year = now()->year;
+        
+        $count = \App\Models\Letter::where('letter_type_id', $letterType->id)->count();
+            
+        $newSequence = $count + 1;
+        $paddingNo = str_pad($newSequence, 3, '0', STR_PAD_LEFT);
+        
+        $romanMonth = $this->getRomanMonth(now()->month);
+        
+        $format = $letterType->code_format;
+        
+        $letterCode = $letterType->code;
+
+        if (!$format) {
+            return "{$paddingNo}/{$letterCode}/PP/{$romanMonth}/{$year}";
+        }
+        
+        $prodiCode = $targetJurusan ? $this->getProdiCode($targetJurusan) : 'UMUM';
+        
+        $result = str_replace(
+            ['{no}', '{kode}', '{bln}', '{thn}', '{prodi}', '{Prodi}', '{extra}', '{Extra}'],
+            [$paddingNo, $letterCode, $romanMonth, $year, $prodiCode, $prodiCode, $prodiCode, $prodiCode],
+            $format
+        );
+        
+        return $result;
+    }
+    
+    private function getProdiCode($jurusan)
+    {
+        $prodi = \App\Models\Prodi::where('name', $jurusan)->first();
+        if ($prodi) {
+            return $prodi->code;
+        }
+        
+        // Fallback jika tidak ditemukan di DB (untuk data lama atau input manual baru)
+        $map = [
+            'teknik informatika' => 'TI',
+            'sistem informasi' => 'SI',
+            'teknik mesin' => 'TM',
+            'teknik elektro' => 'TE',
+            'manajemen bisnis' => 'MB',
+            'administrasi perkantoran' => 'AP',
+            'akuntansi' => 'AK',
+            'manajemen pemasaran' => 'MP',
+        ];
+        
+        $key = strtolower(trim($jurusan));
+        return $map[$key] ?? strtoupper(substr($jurusan, 0, 2));
+    }
+    
+    private function getRomanMonth($month)
+    {
+        $map = [
+            1 => 'I', 2 => 'II', 3 => 'III', 4 => 'IV', 5 => 'V', 6 => 'VI',
+            7 => 'VII', 8 => 'VIII', 9 => 'IX', 10 => 'X', 11 => 'XI', 12 => 'XII',
+        ];
+        return $map[$month];
+    }
+
+    public function apiUploadFile(Request $request, $id)
+    {
+        $request->validate([
+            'file' => 'required|mimes:pdf,docx,doc|max:5120',
+        ]);
+
+        $letter = \App\Models\Letter::findOrFail($id);
+
+        if ($letter->user_id !== auth()->id() && auth()->user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        if ($letter->file_path && \Illuminate\Support\Facades\Storage::exists($letter->file_path)) {
+            \Illuminate\Support\Facades\Storage::delete($letter->file_path);
+        }
+
+        $file = $request->file('file');
+        $filename = time().'_'.auth()->id().'_'.$file->getClientOriginalName();
+        $path = $file->storeAs('letters/'.date('Y/m'), $filename);
+
+        $letter->update(['file_path' => $path]);
+
+        return response()->json(['message' => 'File surat berhasil diunggah.', 'letter' => $letter]);
     }
 
     public function download($id)

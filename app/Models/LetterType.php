@@ -9,7 +9,7 @@ class LetterType extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['name', 'code', 'template_path', 'original_filename', 'parent_id'];
+    protected $fillable = ['name', 'code', 'template_path', 'original_filename', 'parent_id', 'code_format'];
 
     public function letters()
     {

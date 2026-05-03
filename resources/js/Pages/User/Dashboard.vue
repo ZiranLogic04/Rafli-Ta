@@ -31,49 +31,44 @@
 
             <div class="letter-types-grid">
                 <div
-                    v-for="group in groupedLetterTypes"
-                    :key="group.id"
+                    v-for="type in letterTypes"
+                    :key="type.id"
                     class="card-shimmer letter-type-card"
                 >
                     <div
                         class="letter-type-icon"
-                        :class="getIconConfig(group.name).iconClass"
+                        :class="getIconConfig(type.name).iconClass"
                     >
                         <span class="material-symbols-outlined icon-text-xl">
-                            {{ getIconConfig(group.name).icon }}
+                            {{ getIconConfig(type.name).icon }}
                         </span>
                     </div>
                     <h3 class="letter-type-name">
-                        {{ group.name }}
+                        {{ type.name }}
                     </h3>
                     <p class="letter-type-desc">
-                        {{ groupDescription(group) }}
-                    </p>
-                    <p
-                        v-if="group.children.length > 0"
-                        class="letter-type-count"
-                    >
-                        {{ group.children.length }} jenis tersedia
+                        {{ type.description || `Pengajuan ${type.name} dapat langsung dibuat dari sini.` }}
                     </p>
                     <router-link
-                        :to="{ path: '/letters/create', query: { type_id: group.id } }"
+                        :to="{ path: '/letters/create', query: { type_id: type.id } }"
                         class="letter-type-btn"
-                        :class="getIconConfig(group.name).btnClass"
+                        :class="getIconConfig(type.name).btnClass"
+                        :style="{ 
+                            backgroundColor: getIconConfig(type.name).color,
+                            color: 'white',
+                            border: 'none'
+                        }"
                     >
                         <span class="material-symbols-outlined icon-text-sm">
                             add_circle
                         </span>
-                        {{
-                            group.children.length > 0
-                                ? 'Buat Surat'
-                                : getIconConfig(group.name).btnText
-                        }}
+                        {{ getIconConfig(type.name).btnText }}
                     </router-link>
                 </div>
             </div>
 
             <div
-                v-if="groupedLetterTypes.length === 0"
+                v-if="letterTypes.length === 0"
                 class="empty-state"
             >
                 <p class="empty-text">
@@ -93,111 +88,80 @@ const user = inject("user");
 const letterTypes = ref([]);
 
 const getIconConfig = (name) => {
+    if (!name) return { icon: "description", iconClass: "icon-indigo", btnClass: "btn-indigo", btnText: "Buat Surat", color: "#4F46E5" };
     const n = name.toLowerCase();
 
-    if (n.includes("tugas")) {
+    if (n.includes("tugas") || n.includes("dinas")) {
         return {
             icon: "travel_explore",
             iconClass: "icon-indigo",
             btnClass: "btn-indigo",
             btnText: "Buat Surat Baru",
+            color: "#4F46E5"
         };
     }
-
-    if (n.includes("rekomendasi")) {
+    if (n.includes("rekomendasi") || n.includes("prestasi")) {
         return {
             icon: "verified",
             iconClass: "icon-amber",
             btnClass: "btn-amber",
             btnText: "Ajukan Rekomendasi",
+            color: "#D97706"
         };
     }
-
-    if (n.includes("izin") || n.includes("cuti")) {
+    if (n.includes("izin") || n.includes("cuti") || n.includes("sakit")) {
         return {
             icon: "event_busy",
             iconClass: "icon-emerald",
             btnClass: "btn-emerald",
             btnText: "Ajukan Perizinan",
+            color: "#059669"
         };
     }
-
-    if (n.includes("keterangan")) {
+    if (n.includes("keterangan") || n.includes("aktif") || n.includes("mahasiswa")) {
         return {
             icon: "school",
             iconClass: "icon-blue",
             btnClass: "btn-blue",
             btnText: "Buat Surat",
+            color: "#2563EB"
         };
     }
-
-    if (n.includes("undangan")) {
+    if (n.includes("undangan") || n.includes("pertemuan") || n.includes("rapat")) {
         return {
             icon: "mail",
-            iconClass: "icon-violet",
-            btnClass: "btn-violet",
+            iconClass: "icon-indigo",
+            btnClass: "btn-indigo",
             btnText: "Buat Surat",
+            color: "#4F46E5"
         };
     }
-
-    if (n.includes("keputusan") || n.includes("edaran") || n === "sk") {
+    if (n.includes("keputusan") || n.includes("edaran") || n === "sk" || n.includes("penetapan")) {
         return {
             icon: "gavel",
             iconClass: "icon-rose",
             btnClass: "btn-rose",
             btnText: "Buat Surat",
+            color: "#E11D48"
+        };
+    }
+    if (n.includes("perjanjian") || n.includes("kerjasama") || n.includes("ia") || n.includes("mou")) {
+        return {
+            icon: "handshake",
+            iconClass: "icon-cyan",
+            btnClass: "btn-cyan",
+            btnText: "Buat Perjanjian",
+            color: "#0891B2"
         };
     }
 
     return {
         icon: "description",
-        iconClass: "icon-slate",
-        btnClass: "btn-slate",
+        iconClass: "icon-indigo",
+        btnClass: "btn-indigo",
         btnText: "Buat Surat",
+        color: "#4F46E5"
     };
-};
-
-const groupedLetterTypes = computed(() => {
-    const groupMap = new Map();
-
-    for (const type of letterTypes.value) {
-        if (!type.parent_id) {
-            groupMap.set(type.id, {
-                id: type.id,
-                name: type.name,
-                directType: type,
-                children: [],
-            });
-        }
-    }
-
-    for (const type of letterTypes.value) {
-        if (!type.parent_id || !type.parent) continue;
-
-        if (!groupMap.has(type.parent.id)) {
-            groupMap.set(type.parent.id, {
-                id: type.parent.id,
-                name: type.parent.name,
-                directType: null,
-                children: [],
-            });
-        }
-
-        const group = groupMap.get(type.parent.id);
-        group.children.push(type);
-    }
-
-    return Array.from(groupMap.values())
-        .filter((group) => group.directType || group.children.length > 0)
-        .sort((a, b) => a.name.localeCompare(b.name));
-});
-
-const groupDescription = (group) => {
-    if (group.children.length > 0) {
-        return `Kategori ${group.name} memiliki beberapa jenis surat turunan yang akan dipilih di langkah berikutnya.`;
-    }
-
-    return `Pengajuan ${group.name} dapat langsung dibuat dari kategori ini.`;
 };
 
 onMounted(async () => {
@@ -415,6 +379,11 @@ onMounted(async () => {
     color: var(--rose-600);
 }
 
+.icon-cyan {
+    background: #ecfeff;
+    color: #0891b2;
+}
+
 .icon-slate {
     background: var(--slate-100);
     color: var(--slate-600);
@@ -452,8 +421,8 @@ onMounted(async () => {
     font-size: 0.875rem;
     font-weight: 700;
     border-radius: 1rem;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    transition: all 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -461,89 +430,21 @@ onMounted(async () => {
     text-decoration: none;
 }
 
-.btn-indigo {
-    background: white;
-    border: 2px solid var(--indigo-100);
-    color: var(--indigo-600);
+/* Hover Logic: Efek tambahan saat tombol itu sendiri di-hover */
+.letter-type-btn:hover {
+    transform: translateY(-5px) !important;
+    filter: brightness(1.1);
+    box-shadow: 0 15px 30px -10px rgba(0, 0, 0, 0.3) !important;
 }
 
-.btn-indigo:hover {
-    background: var(--indigo-600);
-    color: white;
-    border-color: var(--indigo-600);
-    box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.2);
-}
-
-.btn-amber {
-    background: white;
-    border: 2px solid var(--amber-100);
-    color: var(--amber-600);
-}
-
-.btn-amber:hover {
-    background: var(--amber-600);
-    color: white;
-    border-color: var(--amber-600);
-    box-shadow: 0 10px 15px -3px rgba(245, 158, 11, 0.2);
-}
-
-.btn-emerald {
-    background: white;
-    border: 2px solid var(--emerald-100);
-    color: var(--emerald-600);
-}
-
-.btn-emerald:hover {
-    background: var(--emerald-600);
-    color: white;
-    border-color: var(--emerald-600);
-    box-shadow: 0 10px 15px -3px rgba(16, 185, 129, 0.2);
-}
-
-.btn-blue {
-    background: white;
-    border: 2px solid var(--blue-100);
-    color: var(--blue-600);
-}
-
-.btn-blue:hover {
-    background: var(--blue-600);
-    color: white;
-    border-color: var(--blue-600);
-    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.2);
-}
-
-.btn-violet {
-    background: white;
-    border: 2px solid var(--violet-100);
-    color: var(--violet-600);
-}
-
-.btn-violet:hover {
-    background: var(--violet-600);
-    color: white;
-    border-color: var(--violet-600);
-    box-shadow: 0 10px 15px -3px rgba(124, 58, 237, 0.2);
-}
-
-.btn-rose {
-    background: white;
-    border: 2px solid var(--rose-100);
-    color: var(--rose-600);
-}
-
-.btn-rose:hover {
-    background: var(--rose-600);
-    color: white;
-    border-color: var(--rose-600);
-    box-shadow: 0 10px 15px -3px rgba(244, 63, 94, 0.2);
-}
-
-.btn-slate {
-    background: white;
-    border: 2px solid var(--slate-200);
-    color: var(--slate-600);
-}
+.btn-indigo { background: var(--indigo-600); border: none; color: white !important; }
+.btn-amber { background: var(--amber-600); border: none; color: white !important; }
+.btn-emerald { background: var(--emerald-600); border: none; color: white !important; }
+.btn-blue { background: var(--blue-600); border: none; color: white !important; }
+.btn-violet { background: var(--violet-600); border: none; color: white !important; }
+.btn-rose { background: var(--rose-600); border: none; color: white !important; }
+.btn-cyan { background: #0891b2; border: none; color: white !important; }
+.btn-slate { background: var(--slate-600); border: none; color: white !important; }
 
 .btn-slate:hover {
     background: var(--slate-800);

@@ -96,8 +96,8 @@
                         <thead>
                             <tr>
                                 <th>Pengaju</th>
-                                <th>Tujuan</th>
-                                <th>Jenis</th>
+                                <th>Jenis & Tujuan</th>
+                                <th>Keterangan</th>
                                 <th>Tanggal</th>
                                 <th>Status</th>
                                 <th>No. Surat</th>
@@ -107,13 +107,26 @@
                         <tbody>
                             <tr v-for="letter in letters" :key="letter.id">
                                 <td class="font-bold">{{ letter.user?.name || "-" }}</td>
-                                <td class="text-muted text-sm">{{ targetDisplay(letter) }}</td>
-                                <td class="text-muted font-medium">
-                                    {{
-                                        letter.type?.parent?.name
-                                            ? `${letter.type.parent.name} / ${letter.type.name}`
-                                            : letter.type?.name || "-"
-                                    }}
+                                <td class="nowrap">
+                                    <div class="letter-type-cell">
+                                        <div class="letter-type-info">
+                                            <span class="target-text">
+                                                {{ targetDisplay(letter) }}
+                                            </span>
+                                            <span class="letter-type-name">
+                                                {{
+                                                    letter.type?.parent?.name
+                                                        ? `${letter.type.parent.name} / ${letter.type.name}`
+                                                        : letter.type?.name || "-"
+                                                }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="notes-text" :title="letter.notes">
+                                        {{ truncateNotes(letter.notes) || '-' }}
+                                    </span>
                                 </td>
                                 <td class="text-muted text-sm">{{ formatDate(letter.created_at) }}</td>
                                 <td>
@@ -122,13 +135,6 @@
                                 <td>
                                     <span v-if="letter.letter_number" class="letter-number">
                                         <span class="letter-number__code">{{ letter.letter_number }}</span>
-                                        <button
-                                            @click="openEditNumberModal(letter)"
-                                            class="letter-number__edit"
-                                            title="Edit Nomor Surat"
-                                        >
-                                            <span class="material-symbols-outlined">edit</span>
-                                        </button>
                                     </span>
                                     <span v-else class="text-muted text-xs">Otomatis saat disetujui</span>
                                 </td>
@@ -147,7 +153,7 @@
                                 </td>
                             </tr>
                             <tr v-if="letters.length === 0">
-                                <td colspan="7" class="empty-row">Tidak ada data.</td>
+                                <td colspan="8" class="empty-row">Tidak ada data.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -185,21 +191,6 @@
                 </div>
             </div>
 
-            <!-- Edit Number Modal -->
-            <div v-if="showEditNumberModal" class="modal-overlay" @click.self="showEditNumberModal = false">
-                <div class="modal-content modal-content--md">
-                    <h3 class="modal-content__title">Edit Nomor Surat</h3>
-                    <p class="modal-content__desc">Ubah nomor surat untuk pengajuan ini.</p>
-                    <input
-                        v-model="editNumberValue"
-                        class="form-input-mono"
-                        placeholder="Masukkan nomor surat..."
-                    />
-                    <div class="modal-actions">
-                        <button @click="showEditNumberModal = false" class="btn-cancel">Batal</button>
-                        <button @click="updateLetterNumber" :disabled="!editNumberValue" class="btn-primary-modal">Simpan</button>
-                    </div>
-                </div>
             </div>
         </div>
     </AppLayout>
@@ -235,6 +226,11 @@ const formatDate = (d) =>
         month: "short",
         year: "numeric",
     });
+
+const truncateNotes = (notes) => {
+    if (!notes) return "";
+    return notes.length > 30 ? notes.substring(0, 30) + '...' : notes;
+};
 const statusClass = (s) =>
     ({
         pending: "status-badge--pending",
@@ -572,6 +568,9 @@ onMounted(fetchLetters);
 
 .table-scroll {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 480px;
+    width: 100%;
 }
 
 .data-table thead tr {
@@ -601,6 +600,40 @@ onMounted(fetchLetters);
 
 .data-table tbody td.text-center {
     text-align: center;
+}
+
+.letter-type-cell {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.letter-type-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.letter-type-name {
+    font-weight: 500;
+    color: var(--slate-500);
+    font-size: 0.75rem;
+}
+
+.target-text {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--slate-900);
+    display: block;
+    margin-bottom: 0.125rem;
+}
+
+.notes-text {
+    font-size: 0.875rem;
+    color: var(--slate-600);
+    white-space: normal;
+    min-width: 200px;
+    display: block;
 }
 
 .data-table tbody td.font-bold {
@@ -830,6 +863,11 @@ onMounted(fetchLetters);
     font-size: 0.875rem;
     color: var(--slate-500);
     margin-bottom: 1.5rem;
+}
+
+.data-table {
+    width: 100%;
+    min-width: 1100px;
 }
 
 .form-textarea {

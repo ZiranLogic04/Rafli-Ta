@@ -15,6 +15,8 @@ class Letter extends Model
         'target_role',
         'target_wadir_level',
         'target_jurusan',
+        'signatory_name',
+        'notes',
         'file_path',
         'status',
         'current_approver_role',
@@ -23,6 +25,8 @@ class Letter extends Model
         'approved_at',
         'approved_by',
     ];
+
+    protected $appends = ['target_info'];
 
     protected $casts = [
         'approved_at' => 'datetime',
@@ -47,5 +51,10 @@ class Letter extends Model
     public function approver()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function getTargetInfoAttribute()
+    {
+        return $this->target_name ?: "-";
     }
 }

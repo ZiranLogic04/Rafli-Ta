@@ -4,6 +4,10 @@
     box-sizing: border-box;
 }
 
+a {
+    text-decoration: none;
+}
+
 body {
     font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
     color: #0F172A;
@@ -14,6 +18,7 @@ body {
 /* ===== COLORS ===== */
 :root {
     --primary: #4F46E5;
+    --primary-hover: #4338CA;
     --primary-dark: #4338CA;
     --primary-light: #EEF2FF;
     --accent-amber: #F59E0B;

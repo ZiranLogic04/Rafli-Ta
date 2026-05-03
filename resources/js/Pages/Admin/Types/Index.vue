@@ -13,17 +13,9 @@
                     </div>
                 </div>
                 <div class="page-header__actions">
-                    <button @click="showGuideModal = true" class="btn-secondary">
-                        <span class="material-symbols-outlined">help</span>
-                        Panduan
-                    </button>
-                    <button @click="openCreateParentModal" class="btn-secondary">
-                        <span class="material-symbols-outlined">category</span>
+                    <button @click="openCreateModal" class="btn-primary-action">
+                        <span class="material-symbols-outlined">add_circle</span>
                         Tambah Jenis Surat
-                    </button>
-                    <button @click="openCreateChildModal" class="btn-primary-action">
-                        <span class="material-symbols-outlined">description</span>
-                        Tambah Surat
                     </button>
                 </div>
             </div>
@@ -31,13 +23,9 @@
             <!-- Filter + Table -->
             <div class="table-card">
                 <div class="table-card__filter">
-                    <span class="material-symbols-outlined table-card__filter-icon">filter_list</span>
-                    <span class="table-card__filter-label">Filter:</span>
-                    <select v-model="filterParent" class="table-card__filter-select">
-                        <option :value="null">Semua</option>
-                        <option v-for="p in rootTypes" :key="p.id" :value="p.id">{{ p.name }}</option>
-                    </select>
-                    <span class="table-card__filter-count">{{ filteredTypes.length }} surat</span>
+                    <span class="material-symbols-outlined table-card__filter-icon">search</span>
+                    <input v-model="searchQuery" placeholder="Cari nama atau kode..." class="table-card__filter-input" />
+                    <span class="table-card__filter-count">{{ filteredTypes.length }} jenis surat</span>
                 </div>
 
                 <div class="table-scroll">
@@ -45,11 +33,10 @@
                         <thead>
                             <tr>
                                 <th class="col-num">#</th>
-                                <th>Nama Surat</th>
-                                <th>Jenis Surat</th>
+                                <th>Nama Jenis Surat</th>
                                 <th>Kode</th>
                                 <th>Template</th>
-                                <th class="text-center">Surat</th>
+                                <th class="text-center">Total Surat</th>
                                 <th class="text-center">Aksi</th>
                             </tr>
                         </thead>
@@ -64,7 +51,6 @@
                                         <span class="type-name__text">{{ type.name }}</span>
                                     </div>
                                 </td>
-                                <td class="text-muted font-medium">{{ type.parent?.name || "-" }}</td>
                                 <td>
                                     <span class="code-badge">{{ type.code }}</span>
                                 </td>
@@ -112,10 +98,10 @@
                         <div class="modal-card__header">
                             <div>
                                 <h3 class="modal-card__title">
-                                    {{ editingType ? "Edit" : (isCreatingChild ? "Tambah Surat" : "Tambah Jenis Surat") }}
+                                    {{ editingType ? "Edit Jenis Surat" : "Tambah Jenis Surat" }}
                                 </h3>
                                 <p class="modal-card__desc">
-                                    {{ editingType ? "Perbarui informasi" : (isCreatingChild ? "Tambahkan jenis surat spesifik di bawah kategori." : "Tambahkan kategori utama jenis surat.") }}
+                                    {{ editingType ? "Perbarui informasi jenis surat." : "Tambahkan jenis surat baru ke dalam sistem." }}
                                 </p>
                             </div>
                             <button type="button" @click="showModal = false" class="modal-close">
@@ -123,22 +109,28 @@
                             </button>
                         </div>
                         <div class="modal-card__body">
-                            <div v-if="isCreatingChild" class="form-group">
-                                <label class="form-label">Jenis Surat</label>
-                                <select v-model="form.parent_id" required class="form-select-lg">
-                                    <option :value="null">-- Pilih jenis surat --</option>
-                                    <option v-for="p in parentOptions" :key="p.id" :value="p.id">{{ p.name }}</option>
-                                </select>
+                            <div class="form-group">
+                                <label class="form-label">Nama Surat</label>
+                                <input v-model="form.name" required class="form-input-lg" type="text" placeholder="Contoh: Surat Tugas" />
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Nama</label>
-                                <input v-model="form.name" required class="form-input-lg" type="text" :placeholder="isCreatingChild ? 'Contoh: Mutasi' : 'Contoh: Surat Keputusan'" />
+                                <label class="form-label">Kode Surat</label>
+                                <div class="input-with-helper">
+                                    <input v-model="form.code" required class="form-input-lg form-input--mono" type="text" placeholder="Contoh: ST" />
+                                    <button type="button" class="helper-btn" @click="insertProdiTag">
+                                        <span class="material-symbols-outlined">add_circle</span>
+                                        + Tag Prodi
+                                    </button>
+                                </div>
+                                <p class="form-hint">Klik tombol di atas untuk menyisipkan kode jurusan otomatis.</p>
+                            </div>
+
+                            <!-- Smart Preview -->
+                            <div class="preview-box">
+                                <div class="preview-label">Contoh Nomor Surat:</div>
+                                <div class="preview-value">{{ letterNumberPreview }}</div>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Kode</label>
-                                <input v-model="form.code" required class="form-input-lg form-input--mono" type="text" :placeholder="isCreatingChild ? 'Contoh: MUT' : 'Contoh: SK'" />
-                            </div>
-                            <div v-if="isCreatingChild" class="form-group">
                                 <label class="form-label">Template (.docx) <span v-if="editingType" class="text-optional">- Opsional</span></label>
                                 <div class="file-upload" @click="$refs.fileInput.click()">
                                     <input ref="fileInput" type="file" accept=".docx" class="hidden" @change="onFileSelect" />
@@ -241,14 +233,13 @@ import axios from "axios";
 import AppLayout from "../../../Layouts/AppLayout.vue";
 
 const showFlash = inject("showFlash");
+const searchQuery = ref("");
 const types = ref([]);
-const filterParent = ref(null);
 const showModal = ref(false);
 const showGuideModal = ref(false);
 const showDeleteModal = ref(false);
 const editingType = ref(null);
 const deletingType = ref(null);
-const isCreatingChild = ref(false);
 const form = ref({ name: "", code: "", parent_id: null });
 const selectedFile = ref(null);
 const selectedFileName = ref("");
@@ -259,19 +250,13 @@ const fetchTypes = async () => {
     types.value = res.data;
 };
 
-const openCreateParentModal = () => {
+const openCreateModal = () => {
     editingType.value = null;
-    isCreatingChild.value = false;
-    form.value = { name: "", code: "", parent_id: null };
-    selectedFile.value = null;
-    selectedFileName.value = "";
-    showModal.value = true;
-};
-
-const openCreateChildModal = () => {
-    editingType.value = null;
-    isCreatingChild.value = true;
-    form.value = { name: "", code: "", parent_id: null };
+    form.value = { 
+        name: "", 
+        code: "", 
+        parent_id: null
+    };
     selectedFile.value = null;
     selectedFileName.value = "";
     showModal.value = true;
@@ -279,8 +264,11 @@ const openCreateChildModal = () => {
 
 const openEditModal = (type) => {
     editingType.value = type;
-    isCreatingChild.value = !!type.parent_id;
-    form.value = { name: type.name, code: type.code, parent_id: type.parent_id || null };
+    form.value = { 
+        name: type.name, 
+        code: type.code, 
+        parent_id: null
+    };
     selectedFile.value = null;
     selectedFileName.value = "";
     showModal.value = true;
@@ -302,7 +290,10 @@ const saveType = async () => {
         const fd = new FormData();
         fd.append("name", form.value.name);
         fd.append("code", form.value.code);
-        if (form.value.parent_id) fd.append("parent_id", form.value.parent_id);
+        
+        // Always use standard format, the code itself might contain {Prodi}
+        fd.append("code_format", "{no}/{kode}/PP/{bln}/{thn}");
+        
         if (selectedFile.value) fd.append("template_path", selectedFile.value);
 
         if (editingType.value) {
@@ -334,23 +325,38 @@ const deleteType = async () => {
 
 onMounted(fetchTypes);
 
-const rootTypes = computed(() =>
-    types.value.filter((t) => !t.parent_id).sort((a, b) => a.name.localeCompare(b.name))
-);
+const letterNumberPreview = computed(() => {
+    let code = form.value.code || "KODE";
+    const now = new Date();
+    const months = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
+    const month = months[now.getMonth()];
+    const year = now.getFullYear();
+    
+    // Gunakan format standar
+    let format = `001/${code}/PP/${month}/${year}`;
+        
+    // Pastikan jika ada {Prodi} (baik diketik manual atau via tombol), ganti jadi IF
+    return format.replace(/{Prodi}/gi, "IF");
+});
+
+const insertProdiTag = () => {
+    if (!form.value.code.includes("{Prodi}")) {
+        form.value.code += "-{Prodi}";
+    }
+};
 
 const filteredTypes = computed(() => {
-    let list = types.value.filter((t) => t.parent_id);
+    let list = [...types.value];
 
-    if (filterParent.value) {
-        list = list.filter((t) => t.parent_id === filterParent.value);
+    if (searchQuery.value) {
+        const q = searchQuery.value.toLowerCase();
+        list = list.filter((t) =>
+            t.name.toLowerCase().includes(q) ||
+            t.code.toLowerCase().includes(q)
+        );
     }
 
     return list.sort((a, b) => a.name.localeCompare(b.name));
-});
-
-const parentOptions = computed(() => {
-    if (!editingType.value) return rootTypes.value;
-    return rootTypes.value.filter((t) => t.id !== editingType.value.id);
 });
 </script>
 
@@ -477,7 +483,9 @@ const parentOptions = computed(() => {
 }
 
 .btn-primary-action:hover {
-    background: var(--primary-dark);
+    background: var(--primary-dark) !important;
+    transform: translateY(-3px);
+    box-shadow: 0 12px 20px -5px rgba(79, 70, 229, 0.4);
 }
 
 .btn-primary-action:active {
@@ -518,7 +526,9 @@ const parentOptions = computed(() => {
     letter-spacing: 0.05em;
 }
 
-.table-card__filter-select {
+.table-card__filter-input {
+    flex: 1;
+    max-width: 20rem;
     padding: 0.5rem 1rem;
     border-radius: 0.75rem;
     border: 1px solid var(--slate-200);
@@ -528,10 +538,11 @@ const parentOptions = computed(() => {
     transition: all 0.2s;
 }
 
-.table-card__filter-select:focus {
+.table-card__filter-input:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.2);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
 }
 
 .table-card__filter-count {
@@ -709,7 +720,8 @@ const parentOptions = computed(() => {
 }
 
 .btn-icon--edit:hover {
-    background: var(--amber-100);
+    background: var(--amber-500);
+    color: white;
 }
 
 .btn-icon--delete {
@@ -718,47 +730,89 @@ const parentOptions = computed(() => {
 }
 
 .btn-icon--delete:hover {
-    background: var(--rose-100);
+    background: var(--rose-500);
+    color: white;
 }
 
-/* Empty State */
-.empty-row {
-    padding: 4rem !important;
-    text-align: center;
-}
-
-.empty-state {
+/* Input with Helper */
+.input-with-helper {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    gap: 0.5rem;
+    align-items: stretch;
 }
 
-.empty-state__icon {
-    width: 4rem;
-    height: 4rem;
-    border-radius: 1rem;
+.input-with-helper input {
+    flex: 1;
+}
+
+.helper-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0 1rem;
     background: var(--slate-100);
-    color: var(--slate-400);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 1rem;
-}
-
-.empty-state__icon .material-symbols-outlined {
-    font-size: 2.5rem;
-}
-
-.empty-state__title {
-    font-size: 0.875rem;
+    border: 1px solid var(--slate-200);
+    border-radius: 0.75rem;
+    color: var(--slate-700);
+    font-size: 0.8125rem;
     font-weight: 700;
-    color: var(--slate-600);
-    margin-bottom: 0.25rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
 }
 
-.empty-state__desc {
+.helper-btn:hover {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.helper-btn .material-symbols-outlined {
+    font-size: 1.125rem;
+}
+
+.form-hint {
+    margin-top: 0.5rem;
     font-size: 0.75rem;
     color: var(--slate-400);
+}
+
+/* Smart Preview Box (Professional Campus Style) */
+.preview-box {
+    margin-top: 1rem;
+    margin-bottom: 2rem; /* Add space below */
+    padding: 0.75rem 1.25rem;
+    background: #f8fafc;
+    border-radius: 0.75rem;
+    border: 1px solid #e2e8f0;
+    border-left: 4px solid var(--primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.preview-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--slate-500);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.preview-value {
+    font-family: 'JetBrains Mono', 'Menlo', 'Monaco', monospace;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--slate-800);
+    letter-spacing: 0.02em;
+}
+
+.preview-hint {
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--slate-400);
+    font-style: normal;
+    padding-top: 0.5rem;
+    border-top: 1px solid #f1f5f9;
 }
 
 /* Modal */
@@ -842,7 +896,7 @@ const parentOptions = computed(() => {
     display: block;
     font-size: 0.6875rem;
     font-weight: 700;
-    color: var(--slate-400);
+    color: var(--slate-700);
     text-transform: uppercase;
     letter-spacing: 0.1em;
     margin-bottom: 0.5rem;
@@ -979,7 +1033,9 @@ const parentOptions = computed(() => {
 }
 
 .btn-save:hover {
-    background: var(--primary-dark);
+    background: var(--primary-dark) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px -5px rgba(79, 70, 229, 0.4);
 }
 
 .btn-save:disabled {

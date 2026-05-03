@@ -19,10 +19,6 @@
                         <span class="material-symbols-outlined">lock_open</span>
                         Kelola Izin Surat
                     </button>
-                    <button @click="showDeptModal = true" class="btn-secondary">
-                        <span class="material-symbols-outlined">school</span>
-                        Jurusan
-                    </button>
                     <button @click="openDrawer()" class="btn-primary-action">
                         <span class="material-symbols-outlined">person_add</span>
                         Tambah Pengguna
@@ -39,7 +35,6 @@
                                 <th class="col-num">#</th>
                                 <th>Pengguna</th>
                                 <th>Email</th>
-                                <th>Kode</th>
                                 <th>Peran</th>
                                 <th>Detail</th>
                                 <th class="text-center">Aksi</th>
@@ -57,10 +52,6 @@
                                     </div>
                                 </td>
                                 <td class="text-muted font-medium text-sm">{{ u.email }}</td>
-                                <td>
-                                    <span v-if="u.code" class="code-badge">{{ u.code }}</span>
-                                    <span v-else class="text-muted text-xs italic">-</span>
-                                </td>
                                 <td>
                                     <span class="role-badge" :class="roleClass(u.role)">{{ u.role }}</span>
                                 </td>
@@ -111,10 +102,6 @@
                             <input v-model="form.name" required class="form-input-lg" />
                         </div>
                         <div class="form-group">
-                            <label class="form-label">Kode Identitas <span v-if="editingUser" class="text-disabled">(tidak dapat diubah)</span></label>
-                            <input v-model="form.code" :disabled="editingUser" placeholder="Misal: KPD-TIM, DOS-TIK" class="form-input-lg" type="text" />
-                        </div>
-                        <div class="form-group">
                             <label class="form-label">Email</label>
                             <input v-model="form.email" type="email" required class="form-input-lg" />
                         </div>
@@ -141,7 +128,7 @@
                             <label class="form-label">Jurusan</label>
                             <select v-model="form.jurusan" required class="form-select-lg">
                                 <option :value="null">-- Pilih Jurusan --</option>
-                                <option v-for="d in departments" :key="d.id" :value="d.name">{{ d.name }}</option>
+                                <option v-for="p in prodis" :key="p.id" :value="p.name">{{ p.name }}</option>
                             </select>
                         </div>
                         <div class="form-group pt-4">
@@ -166,45 +153,6 @@
                         <div class="confirm-modal__actions">
                             <button @click="showDeleteModal = false" class="btn-cancel">Batal</button>
                             <button @click="deleteUser" class="btn-danger">Hapus</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Department Modal -->
-            <div v-if="showDeptModal" class="modal-overlay" @click.self="showDeptModal = false">
-                <div class="modal-card modal-card--dept">
-                    <div class="modal-card__header">
-                        <div>
-                            <h3 class="modal-card__title">Kelola Jurusan</h3>
-                            <p class="modal-card__desc">Tambah atau hapus jurusan untuk penempatan Kaprodi dan Dosen.</p>
-                        </div>
-                        <button type="button" @click="showDeptModal = false" class="modal-close">
-                            <span class="material-symbols-outlined">close</span>
-                        </button>
-                    </div>
-                    <div class="modal-card__body">
-                        <div class="dept-form">
-                            <input v-model="deptForm.name" placeholder="Nama Jurusan" class="dept-form__input" />
-                            <input v-model="deptForm.code" placeholder="Kode" class="dept-form__input dept-form__input--code" />
-                            <button @click="addDepartment" :disabled="!deptForm.name || !deptForm.code" class="btn-add">Tambah</button>
-                        </div>
-                        <div class="dept-list">
-                            <div v-for="dept in departments" :key="dept.id" class="dept-item">
-                                <div class="dept-item__info">
-                                    <div class="dept-item__icon">
-                                        <span class="material-symbols-outlined">school</span>
-                                    </div>
-                                    <div>
-                                        <span class="dept-item__name">{{ dept.name }}</span>
-                                        <span class="dept-item__code">{{ dept.code }}</span>
-                                    </div>
-                                </div>
-                                <button @click="deleteDepartment(dept)" class="btn-icon btn-icon--delete btn-icon--sm">
-                                    <span class="material-symbols-outlined">delete</span>
-                                </button>
-                            </div>
-                            <div v-if="departments.length === 0" class="dept-empty">Belum ada jurusan.</div>
                         </div>
                     </div>
                 </div>
@@ -284,15 +232,13 @@ const showFlash = inject("showFlash");
 const currentUser = inject("user");
 const users = ref([]);
 const allTypes = ref([]);
-const departments = ref([]);
+const prodis = ref([]);
 const showDrawer = ref(false);
 const showDeleteModal = ref(false);
-const showDeptModal = ref(false);
 const showPermissionModal = ref(false);
-const deptForm = ref({ name: "", code: "" });
 const editingUser = ref(null);
 const deletingUser = ref(null);
-const form = ref({ name: "", email: "", password: "", role: "staf", code: "", wadir_level: null, jurusan: "" });
+const form = ref({ name: "", email: "", password: "", role: "staf", wadir_level: null, jurusan: "" });
 const saving = ref(false);
 const roles = ["admin", "direktur", "kaprodi", "wadir", "staf", "dosen"];
 
@@ -348,8 +294,8 @@ const fetchData = async () => {
     const res = await axios.get("/api/admin/users");
     users.value = res.data.users || [];
     allTypes.value = res.data.letterTypes || [];
-    const deptRes = await axios.get("/api/admin/departments");
-    departments.value = deptRes.data || [];
+    const prodiRes = await axios.get("/api/admin/prodis");
+    prodis.value = prodiRes.data || [];
 };
 
 const fetchRolePermissions = async () => {
@@ -368,8 +314,8 @@ const roleMeta = (u) => {
 const openDrawer = (user = null) => {
     editingUser.value = user;
     form.value = user
-        ? { name: user.name, email: user.email, password: "", role: user.role, code: user.code, wadir_level: user.wadir_level ?? null, jurusan: user.jurusan ?? "" }
-        : { name: "", email: "", password: "", role: "staf", code: "", wadir_level: null, jurusan: "" };
+        ? { name: user.name, email: user.email, password: "", role: user.role, wadir_level: user.wadir_level ?? null, jurusan: user.jurusan ?? "" }
+        : { name: "", email: "", password: "", role: "staf", wadir_level: null, jurusan: "" };
     showDrawer.value = true;
 };
 
@@ -405,27 +351,6 @@ const deleteUser = async () => {
         await axios.delete(`/api/admin/users/${deletingUser.value.id}`);
         showFlash("Pengguna dihapus.");
         showDeleteModal.value = false;
-        fetchData();
-    } catch (e) {
-        showFlash(e.response?.data?.message || "Gagal.", "error");
-    }
-};
-
-const addDepartment = async () => {
-    try {
-        await axios.post("/api/admin/departments", deptForm.value);
-        showFlash("Jurusan berhasil ditambahkan.");
-        deptForm.value = { name: "", code: "" };
-        fetchData();
-    } catch (e) {
-        showFlash(e.response?.data?.message || "Gagal.", "error");
-    }
-};
-
-const deleteDepartment = async (dept) => {
-    try {
-        await axios.delete(`/api/admin/departments/${dept.id}`);
-        showFlash("Jurusan berhasil dihapus.");
         fetchData();
     } catch (e) {
         showFlash(e.response?.data?.message || "Gagal.", "error");

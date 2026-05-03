@@ -50,33 +50,20 @@
                         <span v-if="sidebarOpen" class="nav-link-text">Surat Saya</span>
                     </router-link>
 
-                    <!-- Perlu Persetujuan -->
+                    <!-- Semua Surat -->
                     <router-link
                         to="/approvals"
-                        :title="!sidebarOpen ? 'Perlu Persetujuan' : ''"
+                        :title="!sidebarOpen ? 'Semua Surat' : ''"
                         :class="[
                             'nav-link',
                             sidebarOpen ? 'nav-link-expanded' : 'nav-link-collapsed',
                             isActive('approvals')
                                 ? 'nav-link-active'
-                                : 'nav-link-inactive',
-                            'nav-link-relative'
+                                : 'nav-link-inactive'
                         ]"
                     >
-                        <span class="material-symbols-outlined nav-link-icon nav-link-icon-relative" :class="sidebarOpen ? '' : 'nav-link-icon-centered'">
-                            pending_actions
-                            <span
-                                v-if="approvalCount > 0 && !sidebarOpen"
-                                class="nav-badge nav-badge-icon"
-                            >{{ approvalCount }}</span>
-                        </span>
-                        <span v-if="sidebarOpen" class="nav-link-text nav-link-text-with-badge">
-                            Perlu Persetujuan
-                            <span
-                                v-if="approvalCount > 0"
-                                class="nav-badge nav-badge-text"
-                            >{{ approvalCount }}</span>
-                        </span>
+                        <span class="material-symbols-outlined nav-link-icon" :class="sidebarOpen ? '' : 'nav-link-icon-centered'">folder_open</span>
+                        <span v-if="sidebarOpen" class="nav-link-text">Semua Surat</span>
                     </router-link>
 
                     <!-- Admin section -->
@@ -112,6 +99,21 @@
                         >
                             <span class="material-symbols-outlined nav-link-icon" :class="sidebarOpen ? '' : 'nav-link-icon-centered'">group</span>
                             <span v-if="sidebarOpen" class="nav-link-text">Data Pengguna</span>
+                        </router-link>
+
+                        <router-link
+                            to="/admin/prodis"
+                            :title="!sidebarOpen ? 'Data Prodi' : ''"
+                            :class="[
+                                'nav-link',
+                                sidebarOpen ? 'nav-link-expanded' : 'nav-link-collapsed',
+                                isActive('admin.prodis')
+                                    ? 'nav-link-active'
+                                    : 'nav-link-inactive'
+                            ]"
+                        >
+                            <span class="material-symbols-outlined nav-link-icon" :class="sidebarOpen ? '' : 'nav-link-icon-centered'">account_balance</span>
+                            <span v-if="sidebarOpen" class="nav-link-text">Data Prodi</span>
                         </router-link>
                     </template>
                 </template>
@@ -222,7 +224,6 @@ import { resetUserCache } from "../router";
 const route = useRoute();
 const router = useRouter();
 const user = inject("user");
-const approvalCount = ref(0);
 const sidebarOpen = ref(sessionStorage.getItem('sidebarOpen') !== 'false');
 const showLogoutModal = ref(false);
 const showProfileMenu = ref(false);
@@ -239,16 +240,8 @@ const isActive = (name) => {
     if (name === "approvals") return path === "/approvals";
     if (name === "admin.types") return path === "/admin/types";
     if (name === "admin.users") return path === "/admin/users";
+    if (name === "admin.prodis") return path === "/admin/prodis";
     return false;
-};
-
-const fetchApprovalCount = async () => {
-    try {
-        const res = await axios.get("/api/dashboard");
-        approvalCount.value = res.data.stats?.approvalInboxCount || 0;
-    } catch {
-        approvalCount.value = 0;
-    }
 };
 
 const logout = async () => {
@@ -263,15 +256,6 @@ const logout = async () => {
 
 watch(() => route.path, () => {
     showProfileMenu.value = false;
-    if (user.value && user.value.role !== 'admin') {
-        fetchApprovalCount();
-    }
-});
-
-onMounted(() => {
-    if (user.value && user.value.role !== 'admin') {
-        fetchApprovalCount();
-    }
 });
 </script>
 

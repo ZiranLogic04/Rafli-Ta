@@ -1,5 +1,5 @@
 <template>
-    <div class="mesh-gradient login-page">
+    <div class="login-page">
         <div class="login-container">
             <!-- Left Side - Branding -->
             <div class="login-left">

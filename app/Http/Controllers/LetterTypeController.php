@@ -43,6 +43,7 @@ class LetterTypeController extends Controller
             'name' => 'required',
             'code' => 'required|unique:letter_types,code',
             'parent_id' => 'nullable|exists:letter_types,id',
+            'code_format' => 'nullable|string|max:255',
             'template_path' => 'nullable|file|mimes:docx',
         ]);
 
@@ -65,6 +66,7 @@ class LetterTypeController extends Controller
             'name' => $request->name,
             'code' => $request->code,
             'parent_id' => $request->parent_id,
+            'code_format' => $request->code_format,
             'template_path' => $path,
             'original_filename' => $originalFilename,
         ]);
@@ -80,6 +82,7 @@ class LetterTypeController extends Controller
             'name' => 'required',
             'code' => 'required|unique:letter_types,code,'.$id,
             'parent_id' => 'nullable|exists:letter_types,id',
+            'code_format' => 'nullable|string|max:255',
             'template_path' => 'nullable|file|mimes:docx',
         ]);
 
@@ -94,7 +97,7 @@ class LetterTypeController extends Controller
             }
         }
 
-        $data = $request->only('name', 'code', 'parent_id');
+        $data = $request->only('name', 'code', 'parent_id', 'code_format');
 
         if ($request->hasFile('template_path')) {
             if ($type->template_path && \Illuminate\Support\Facades\Storage::exists($type->template_path)) {

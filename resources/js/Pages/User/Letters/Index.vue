@@ -14,7 +14,7 @@
                                     Surat Saya
                                 </h1>
                                 <p class="page-subtitle">
-                                    Lihat riwayat dan status surat yang sudah Anda ajukan.
+                                    Daftar surat yang telah Anda buat beserta nomor surat resminya.
                                 </p>
                             </div>
                         </div>
@@ -24,12 +24,9 @@
                             v-model="search"
                             @keyup.enter="fetchLetters"
                             class="form-input search-input"
-                            placeholder="Cari nomor atau jenis surat..."
+                            placeholder="Cari nomor surat atau keterangan..."
                         />
-                        <span
-                            class="material-symbols-outlined search-icon"
-                            >search</span
-                        >
+                        <span class="material-symbols-outlined search-icon">search</span>
                         <button
                             v-if="search"
                             @click="search = ''; fetchLetters();"
@@ -47,12 +44,12 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Jenis Surat</th>
-                                <th>Ditujukan Ke</th>
+                                <th>No. Surat</th>
+                                <th>Penandatangan</th>
+                                <th>Jenis & Tujuan</th>
+                                <th>Keterangan</th>
                                 <th>Tanggal</th>
-                                <th>Status</th>
-                                <th>Nomor Surat</th>
-                                <th class="header-center">Aksi</th>
+                                <th class="header-center">Dokumen</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -62,95 +59,98 @@
                                 class="letter-row"
                             >
                                 <td>
+                                    <div class="letter-number-box">
+                                        <template v-if="editingId === letter.id">
+                                            <input 
+                                                v-model="editNumber" 
+                                                class="edit-input" 
+                                                @keyup.enter="saveEdit(letter.id)"
+                                                @blur="editingId = null"
+                                                v-focus
+                                            />
+                                            <button @click="saveEdit(letter.id)" class="edit-save-btn">
+                                                <span class="material-symbols-outlined">check</span>
+                                            </button>
+                                        </template>
+                                        <template v-else>
+                                            <span class="letter-number" @dblclick="startEdit(letter)">
+                                                {{ letter.letter_number || "Menunggu" }}
+                                            </span>
+                                            <div class="number-actions">
+                                                <button @click="copyNumber(letter.letter_number)" class="number-action-btn" title="Copy">
+                                                    <span class="material-symbols-outlined">content_copy</span>
+                                                </button>
+                                                <button @click="startEdit(letter)" class="number-action-btn" title="Edit">
+                                                    <span class="material-symbols-outlined">edit</span>
+                                                </button>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="signatory-text">{{ letter.signatory_name || '-' }}</span>
+                                </td>
+                                <td>
                                     <div class="letter-type-cell">
-                                        <div
-                                            class="status-icon-box"
-                                            :class="statusIconBg(letter.status)"
-                                        >
-                                            <span
-                                                class="material-symbols-outlined icon-size-md"
-                                                :class="statusIconColor(letter.status)"
-                                                >{{ statusIcon(letter.status) }}</span
-                                            >
-                                        </div>
                                         <div class="letter-type-info">
+                                            <span class="target-text">
+                                                {{ letter.target_info }}
+                                            </span>
                                             <span class="letter-type-name">
                                                 {{ letter.type?.name || "Surat" }}
-                                            </span>
-                                            <span
-                                                v-if="letter.type?.parent?.name"
-                                                class="letter-parent-name"
-                                            >
-                                                {{ letter.type.parent.name }}
                                             </span>
                                         </div>
                                     </div>
                                 </td>
                                 <td>
-                                    <span class="target-text">{{ targetDisplay(letter) }}</span>
+                                    <span class="notes-text" :title="letter.notes">
+                                        {{ truncateNotes(letter.notes) || '-' }}
+                                    </span>
                                 </td>
                                 <td>
                                     <span class="date-text">{{ formatDate(letter.created_at) }}</span>
                                 </td>
-                                <td>
-                                    <span
-                                        class="status-badge"
-                                        :class="statusClass(letter.status)"
-                                    >
-                                        <span
-                                            class="status-dot"
-                                            :class="statusDot(letter.status)"
-                                        ></span>
-                                        {{ statusLabel(letter.status) }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span
-                                        v-if="letter.letter_number"
-                                        class="letter-number"
-                                    >
-                                        {{ letter.letter_number }}
-                                    </span>
-                                    <span v-else class="no-number">Belum ada</span>
-                                </td>
                                 <td class="cell-center">
                                     <div class="action-buttons">
-                                        <!-- Rejection Note Tooltip -->
-                                        <button
-                                            v-if="letter.status === 'rejected' && letter.rejection_note"
-                                            class="action-btn rejection-info btn-relative"
-                                            @mouseenter="showTooltip(letter.id)"
-                                            @mouseleave="hideTooltip(letter.id)"
-                                        >
-                                            <span class="material-symbols-outlined icon-size-sm">info</span>
-                                            <div class="rejection-tooltip" :class="{ 'tooltip-visible': visibleTooltips.has(letter.id) }">
-                                                <p class="tooltip-title">Alasan Penolakan</p>
-                                                <p class="tooltip-text">{{ letter.rejection_note }}</p>
-                                            </div>
-                                        </button>
-                                        <!-- Download -->
-                                        <a
-                                            v-if="letter.status === 'approved'"
-                                            :href="`/api/letters/${letter.id}/download`"
-                                            target="_blank"
-                                            class="action-btn download-btn"
-                                            title="Unduh Surat"
-                                        >
-                                            <span class="material-symbols-outlined icon-size-sm">download</span>
-                                        </a>
-                                        <span v-else-if="letter.status !== 'rejected'" class="action-placeholder">—</span>
+                                        <template v-if="letter.file_path">
+                                            <a
+                                                :href="`/api/letters/${letter.id}/download`"
+                                                target="_blank"
+                                                class="action-btn download-btn"
+                                                title="Unduh Surat"
+                                            >
+                                                <span class="material-symbols-outlined icon-size-sm">download</span>
+                                            </a>
+                                            <button
+                                                @click="triggerUpload(letter.id)"
+                                                class="action-btn upload-btn"
+                                                title="Ganti Dokumen"
+                                            >
+                                                <span class="material-symbols-outlined icon-size-sm">upload_file</span>
+                                            </button>
+                                        </template>
+                                        <template v-else>
+                                            <button
+                                                @click="triggerUpload(letter.id)"
+                                                class="action-btn upload-btn-primary"
+                                                title="Unggah Dokumen"
+                                            >
+                                                <span class="material-symbols-outlined icon-size-sm">file_upload</span>
+                                                <span class="upload-label">Unggah</span>
+                                            </button>
+                                        </template>
                                     </div>
                                 </td>
                             </tr>
                             <tr v-if="letters.length === 0">
-                                <td colspan="5" class="empty-table-cell">
+                                <td colspan="6" class="empty-table-cell">
                                     <div class="empty-state-content">
                                         <div class="empty-icon-box">
                                             <span class="material-symbols-outlined icon-size-xl">inbox</span>
                                         </div>
                                         <h3 class="empty-title">Belum ada surat</h3>
                                         <p class="empty-subtitle">
-                                            Surat yang Anda ajukan akan muncul di sini.
+                                            Surat yang Anda buat akan muncul di sini.
                                         </p>
                                     </div>
                                 </td>
@@ -175,12 +175,29 @@
                     {{ p }}
                 </button>
             </div>
+            
+            <!-- Hidden File Input for Uploading -->
+            <input 
+                type="file" 
+                ref="fileInputRef" 
+                class="hidden-input" 
+                accept=".docx,.doc,.pdf" 
+                @change="handleFileUpload" 
+            />
+            
+            <!-- Loading Overlay for Uploading -->
+            <div v-if="uploading" class="upload-overlay">
+                <div class="upload-spinner">
+                    <span class="material-symbols-outlined animate-spin icon-size-xl">progress_activity</span>
+                    <p>Mengunggah file...</p>
+                </div>
+            </div>
         </div>
     </AppLayout>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, inject } from "vue";
 import axios from "axios";
 import AppLayout from "../../../Layouts/AppLayout.vue";
 
@@ -188,14 +205,41 @@ const letters = ref([]);
 const search = ref("");
 const page = ref(1);
 const pagination = ref({ lastPage: 1 });
-const visibleTooltips = ref(new Set());
+const showFlash = inject("showFlash");
 
-const showTooltip = (id) => {
-    visibleTooltips.value.add(id);
+const fileInputRef = ref(null);
+const currentUploadId = ref(null);
+const uploading = ref(false);
+const editingId = ref(null);
+const editNumber = ref("");
+
+const vFocus = {
+    mounted: (el) => el.focus()
 };
 
-const hideTooltip = (id) => {
-    visibleTooltips.value.delete(id);
+const copyNumber = (num) => {
+    if (!num) return;
+    navigator.clipboard.writeText(num);
+    showFlash("Nomor surat disalin!");
+};
+
+const startEdit = (letter) => {
+    editingId.value = letter.id;
+    editNumber.value = letter.letter_number;
+};
+
+const saveEdit = async (id) => {
+    if (!editNumber.value) return;
+    try {
+        await axios.patch(`/api/letters/${id}/number`, {
+            letter_number: editNumber.value
+        });
+        showFlash("Nomor surat diperbarui!");
+        editingId.value = null;
+        fetchLetters();
+    } catch (error) {
+        showFlash(error.response?.data?.message || "Gagal memperbarui nomor surat", "error");
+    }
 };
 
 const formatDate = (d) =>
@@ -205,47 +249,10 @@ const formatDate = (d) =>
         year: "numeric",
     });
 
-const statusClass = (s) =>
-    ({
-        pending: "badge-pending",
-        approved: "badge-approved",
-        rejected: "badge-rejected",
-    })[s] || "";
-
-const statusDot = (s) =>
-    ({
-        pending: "dot-pending",
-        approved: "dot-approved",
-        rejected: "dot-rejected",
-    })[s] || "";
-
-const statusLabel = (s) =>
-    ({
-        pending: "Menunggu Persetujuan",
-        approved: "Disetujui",
-        rejected: "Ditolak",
-    })[s] || s;
-
-const statusIcon = (s) =>
-    ({
-        pending: "pending_actions",
-        approved: "check_circle",
-        rejected: "cancel",
-    })[s] || "description";
-
-const statusIconBg = (s) =>
-    ({
-        pending: "icon-bg-pending",
-        approved: "icon-bg-approved",
-        rejected: "icon-bg-rejected",
-    })[s] || "icon-bg-default";
-
-const statusIconColor = (s) =>
-    ({
-        pending: "icon-color-pending",
-        approved: "icon-color-approved",
-        rejected: "icon-color-rejected",
-    })[s] || "icon-color-default";
+const truncateNotes = (notes) => {
+    if (!notes) return "";
+    return notes.length > 30 ? notes.substring(0, 30) + '...' : notes;
+};
 
 const roleLabel = (role) =>
     ({
@@ -257,26 +264,16 @@ const roleLabel = (role) =>
     })[role] || role;
 
 const targetDisplay = (letter) => {
-    if (letter.target) return letter.target;
-    if (letter.target_user?.name) return letter.target_user.name;
-
-    if (letter.target_role === "wadir") {
-        const lvl = letter.target_wadir_level
-            ? ` ${letter.target_wadir_level}`
-            : "";
-        return `Wadir${lvl}`;
+    if (letter.target_name) {
+        if (letter.target_jurusan) return `${letter.target_name} (${letter.target_jurusan})`;
+        return letter.target_name;
+    }
+    
+    if (letter.target_user?.name) {
+        let role = letter.target_user.role;
+        return `${letter.target_user.name} (${roleLabel(role)})`;
     }
 
-    if (
-        ["kaprodi", "dosen"].includes(letter.target_role) &&
-        letter.target_jurusan
-    ) {
-        return `${roleLabel(letter.target_role)} (${letter.target_jurusan})`;
-    }
-
-    if (letter.target_role) return roleLabel(letter.target_role);
-    if (letter.current_approver_role)
-        return `Role: ${roleLabel(letter.current_approver_role)}`;
     return "-";
 };
 
@@ -286,6 +283,33 @@ const fetchLetters = async () => {
     });
     letters.value = res.data.data || [];
     pagination.value = { lastPage: res.data.last_page || 1 };
+};
+
+const triggerUpload = (id) => {
+    currentUploadId.value = id;
+    if (fileInputRef.value) {
+        fileInputRef.value.click();
+    }
+};
+
+const handleFileUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !currentUploadId.value) return;
+
+    uploading.value = true;
+    try {
+        const fd = new FormData();
+        fd.append("file", file);
+        await axios.post(`/api/letters/${currentUploadId.value}/upload`, fd);
+        showFlash("File surat berhasil diunggah!");
+        fetchLetters();
+    } catch (error) {
+        showFlash(error.response?.data?.message || "Gagal mengunggah file.", "error");
+    } finally {
+        e.target.value = null; // reset input
+        currentUploadId.value = null;
+        uploading.value = false;
+    }
 };
 
 onMounted(fetchLetters);
@@ -299,6 +323,7 @@ onMounted(fetchLetters);
     flex-direction: column;
     gap: 2rem;
     padding-bottom: 2.5rem;
+    position: relative;
 }
 
 /* Header */
@@ -401,9 +426,36 @@ onMounted(fetchLetters);
 
 .table-scroll {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 480px; /* ~5 rows + header */
+    width: 100%;
 }
 
-.data-table thead th.text-center {
+.data-table {
+    width: 100%;
+    min-width: 1000px;
+    border-collapse: collapse;
+}
+
+.data-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--primary);
+}
+
+.data-table th, 
+.data-table td {
+    white-space: nowrap;
+}
+
+.data-table td .notes-text {
+    white-space: normal;
+    min-width: 200px;
+    display: block;
+}
+
+.data-table thead th.header-center {
     text-align: center;
 }
 
@@ -423,101 +475,123 @@ onMounted(fetchLetters);
     gap: 1rem;
 }
 
-.status-icon-box {
-    width: 3rem;
-    height: 3rem;
-    border-radius: 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.icon-bg-pending { background: var(--amber-50); }
-.icon-bg-approved { background: var(--emerald-50); }
-.icon-bg-rejected { background: var(--rose-50); }
-.icon-bg-default { background: var(--slate-50); }
-
-.icon-color-pending { color: var(--amber-600); }
-.icon-color-approved { color: var(--emerald-600); }
-.icon-color-rejected { color: var(--rose-600); }
-.icon-color-default { color: var(--slate-600); }
-
 .letter-type-info {
     display: flex;
     flex-direction: column;
-    gap: 0.125rem;
+    gap: 0.25rem;
 }
 
 .letter-type-name {
-    font-weight: 700;
-    color: var(--slate-800);
-    font-size: 0.875rem;
-}
-
-.letter-parent-name {
-    font-size: 0.6875rem;
-    color: var(--slate-400);
     font-weight: 500;
+    color: var(--slate-500);
+    font-size: 0.75rem;
 }
 
 .target-text {
+    font-size: 1rem;
+    font-weight: 800;
+    color: var(--slate-900);
+    display: block;
+    margin-bottom: 0.125rem;
+}
+
+.signatory-text {
     font-size: 0.875rem;
     font-weight: 600;
     color: var(--slate-700);
 }
 
-.date-text {
+.notes-text {
     font-size: 0.875rem;
     color: var(--slate-600);
+}
+
+.date-text {
+    font-size: 0.875rem;
+    color: var(--slate-500);
     font-weight: 500;
 }
 
-/* Status Badge */
-.status-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.375rem;
-    padding: 0.375rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.6875rem;
-    font-weight: 700;
-}
-
-.status-dot {
-    width: 0.375rem;
-    height: 0.375rem;
-    border-radius: 50%;
-}
-
-.dot-pending {
-    background: var(--amber-500);
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-.dot-approved {
-    background: var(--emerald-500);
-}
-
-.dot-rejected {
-    background: var(--rose-500);
-}
-
 /* Letter Number */
-.letter-number {
-    font-size: 0.75rem;
-    font-family: monospace;
-    font-weight: 700;
-    color: var(--slate-600);
-    background: var(--slate-100);
-    padding: 0.25rem 0.625rem;
-    border-radius: 0.5rem;
+.letter-number-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-.no-number {
-    font-size: 0.75rem;
+.letter-number {
+    font-size: 0.875rem;
+    font-family: monospace;
+    font-weight: 800;
+    color: var(--primary);
+    background: var(--indigo-50);
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.5rem;
+    border: 1px dashed var(--indigo-200);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.letter-number:hover {
+    background: var(--indigo-100);
+}
+
+.number-actions {
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.letter-row:hover .number-actions {
+    opacity: 1;
+}
+
+.number-action-btn {
+    padding: 0.25rem;
+    border-radius: 0.375rem;
     color: var(--slate-400);
-    font-style: italic;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.number-action-btn:hover {
+    color: var(--primary);
+    background: var(--indigo-50);
+}
+
+.number-action-btn .material-symbols-outlined {
+    font-size: 16px;
+}
+
+.edit-input {
+    font-family: monospace;
+    font-size: 0.875rem;
+    font-weight: 800;
+    color: var(--primary);
+    background: white;
+    border: 2px solid var(--primary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.5rem;
+    width: 100%;
+    min-width: 120px;
+    max-width: 180px;
+}
+
+.edit-save-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
 }
 
 /* Action Buttons */
@@ -541,16 +615,6 @@ onMounted(fetchLetters);
     text-decoration: none;
 }
 
-.rejection-info {
-    background: var(--rose-50);
-    color: var(--rose-600);
-    position: relative;
-}
-
-.rejection-info:hover {
-    background: var(--rose-100);
-}
-
 .download-btn {
     background: rgba(79, 70, 229, 0.1);
     color: var(--primary);
@@ -561,41 +625,29 @@ onMounted(fetchLetters);
     color: white;
 }
 
-.action-placeholder {
+.upload-btn {
+    background: var(--slate-100);
+    color: var(--slate-600);
+}
+
+.upload-btn:hover {
+    background: var(--slate-200);
+    color: var(--slate-800);
+}
+
+.upload-btn-primary {
+    background: var(--emerald-50);
+    color: var(--emerald-600);
+    width: auto;
+    padding: 0 1rem;
+    gap: 0.5rem;
+    font-weight: 600;
     font-size: 0.75rem;
-    color: var(--slate-300);
 }
 
-/* Rejection Tooltip */
-.rejection-tooltip {
-    position: absolute;
-    bottom: 100%;
-    margin-bottom: 0.5rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: none;
-    width: 14rem;
-    padding: 0.75rem;
-    border-radius: 0.75rem;
-    background: var(--slate-800);
-    color: white;
-    font-size: 0.75rem;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.25);
-    z-index: 10;
-}
-
-.tooltip-visible {
-    display: block;
-}
-
-.tooltip-title {
-    font-weight: 700;
-    margin-bottom: 0.25rem;
-}
-
-.tooltip-text {
-    font-weight: 500;
-    opacity: 0.9;
+.upload-btn-primary:hover {
+    background: var(--emerald-100);
+    color: var(--emerald-700);
 }
 
 /* Empty Table Cell */
@@ -633,28 +685,59 @@ onMounted(fetchLetters);
     font-size: 0.75rem;
     color: var(--slate-400);
 }
-.data-table thead th.header-center {
-    text-align: center;
-}
 
 .cell-center {
     text-align: center;
 }
 
 /* Icon sizes */
-.icon-size-lg {
-    font-size: 28px;
+.icon-size-lg { font-size: 28px; }
+.icon-size-md { font-size: 24px; }
+.icon-size-sm { font-size: 18px; }
+.icon-size-xl { font-size: 40px; }
+
+/* Hidden Input & Overlay */
+.hidden-input {
+    display: none;
 }
 
-.icon-size-md {
-    font-size: 24px;
+.upload-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.7);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
 }
 
-.icon-size-sm {
-    font-size: 18px;
+.upload-spinner {
+    background: white;
+    padding: 2rem 3rem;
+    border-radius: 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
 }
 
-.icon-size-xl {
-    font-size: 40px;
+.upload-spinner .animate-spin {
+    color: var(--primary);
+}
+
+.upload-spinner p {
+    font-weight: 600;
+    color: var(--slate-800);
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 </style>

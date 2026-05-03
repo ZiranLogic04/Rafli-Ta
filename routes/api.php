@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LetterController;
 use App\Http\Controllers\LetterTypeController;
+use App\Http\Controllers\ProdiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -31,14 +32,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // User letters
     Route::get('/letters', [LetterController::class, 'apiIndex']);
     Route::post('/letters', [LetterController::class, 'apiStore']);
+    Route::post('/letters/{id}/upload', [LetterController::class, 'apiUploadFile']);
     Route::get('/letters/create-data', [LetterController::class, 'apiCreateData']);
     Route::get('/letters/template/{id}', [LetterController::class, 'downloadTemplate']);
     Route::get('/letters/{id}/download', [LetterController::class, 'download']);
+    Route::patch('/letters/{letter}/number', [LetterController::class, 'updateLetterNumber']);
 
-    // Approval inbox by role/target
+    // All letters / Inbox
     Route::get('/approvals', [AdminLetterController::class, 'apiInbox']);
-    Route::post('/approvals/{id}/approve', [AdminLetterController::class, 'approve']);
-    Route::post('/approvals/{id}/reject', [AdminLetterController::class, 'reject']);
 
     // Admin-only endpoints
     Route::middleware('role:admin')->prefix('admin')->group(function () {
@@ -46,8 +47,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/letters', [AdminLetterController::class, 'apiIndex']);
         Route::get('/letters/{id}', [AdminLetterController::class, 'apiShow']);
         Route::patch('/letters/{id}/letter-number', [AdminLetterController::class, 'updateLetterNumber']);
-        Route::post('/letters/{id}/approve', [AdminLetterController::class, 'approve']);
-        Route::post('/letters/{id}/reject', [AdminLetterController::class, 'reject']);
 
         // Types
         Route::get('/types', [LetterTypeController::class, 'apiIndex']);
@@ -67,6 +66,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/departments', [AdminDepartmentController::class, 'store']);
         Route::put('/departments/{id}', [AdminDepartmentController::class, 'update']);
         Route::delete('/departments/{id}', [AdminDepartmentController::class, 'destroy']);
+
+        // Prodis
+        Route::get('/prodis', [ProdiController::class, 'index']);
+        Route::post('/prodis', [ProdiController::class, 'store']);
+        Route::put('/prodis/{id}', [ProdiController::class, 'update']);
+        Route::delete('/prodis/{id}', [ProdiController::class, 'destroy']);
 
         // Permissions
         Route::get('/permissions/{role}', [LetterTypeController::class, 'apiRolePermissions']);

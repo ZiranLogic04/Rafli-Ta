@@ -1,4 +1,4 @@
-﻿<template>
+<template>
     <div class="templates-page">
         <!-- Header -->
         <header class="tmpl-header">
@@ -23,8 +23,8 @@
             <div class="tmpl-container">
                 <!-- Hero -->
                 <div class="tmpl-hero">
-                    <h2 class="tmpl-hero-title">Template Surat Resmi</h2>
-                    <p class="tmpl-hero-desc">Pilih dan unduh template surat yang Anda butuhkan. Tidak perlu login, langsung pakai.</p>
+                    <h2 class="tmpl-hero-title">Surat Resmi</h2>
+                    <p class="tmpl-hero-desc">Pilih dan unduh surat yang Anda butuhkan. Tidak perlu login, langsung pakai.</p>
                     <div class="tmpl-search-wrap">
                         <div class="tmpl-search-group">
                             <input
@@ -38,54 +38,42 @@
                     </div>
                 </div>
 
-                <!-- Template Groups -->
+                <!-- Template List -->
                 <div class="grid-2 tmpl-grid">
                     <div
-                        v-for="group in filteredGroups"
-                        :key="group.id"
+                        v-for="type in filteredTypes"
+                        :key="type.id"
                         class="card-lg tmpl-group-card"
                     >
-                        <div class="tmpl-group-header">
-                            <div
-                                class="icon-box-lg tmpl-group-icon"
-                                :class="getGroupStyle(group.name)"
-                            >
-                                <span class="material-symbols-outlined tmpl-group-icon-text">
-                                    {{ getGroupIcon(group.name) }}
-                                </span>
-                            </div>
-                            <div>
-                                <h3 class="tmpl-group-name">{{ group.name }}</h3>
-                                <p class="tmpl-group-count">
-                                    {{ group.children.length > 0 ? `${group.children.length} jenis surat` : 'Klik untuk unduh template' }}
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="tmpl-types-list">
-                            <div
-                                v-for="type in displayTypes(group)"
-                                :key="type.id"
-                                class="tmpl-type-item"
-                                :class="getGroupHoverBorder(group.name)"
-                            >
-                                <div class="tmpl-type-info">
-                                    <span class="tmpl-type-name">{{ type.name }}</span>
-                                    <span class="tmpl-type-code">Kode: {{ type.code }}</span>
+                        <div class="tmpl-card-content">
+                            <div class="tmpl-card-left">
+                                <div
+                                    class="icon-box-lg tmpl-group-icon"
+                                    :class="[
+                                        getIconConfig(type.name, type.id).bg,
+                                        getIconConfig(type.name, type.id).text,
+                                    ]"
+                                >
+                                    <span class="material-symbols-outlined tmpl-group-icon-text">
+                                        {{ getIconConfig(type.name, type.id).icon }}
+                                    </span>
                                 </div>
+                                <div>
+                                    <h3 class="tmpl-group-name">{{ type.name }}</h3>
+                                    <p class="tmpl-group-code">Kode: {{ type.code }}</p>
+                                </div>
+                            </div>
+
+                            <div class="tmpl-card-right">
                                 <a
                                     v-if="type.has_template"
                                     :href="`/api/public/templates/${type.id}/download`"
-                                    class="tmpl-download-btn"
-                                    :class="getGroupBtnStyle(group.name)"
+                                    class="btn-primary tmpl-download-btn"
                                 >
                                     <span class="material-symbols-outlined">download</span>
                                     Unduh
                                 </a>
-                                <span
-                                    v-else
-                                    class="tmpl-disabled-btn"
-                                >
+                                <span v-else class="tmpl-disabled-btn">
                                     <span class="material-symbols-outlined">block</span>
                                     Belum Tersedia
                                 </span>
@@ -96,15 +84,29 @@
 
                 <!-- Empty State -->
                 <div
-                    v-if="filteredGroups.length === 0"
+                    v-if="filteredTypes.length === 0"
                     class="tmpl-empty-state"
                 >
                     <div class="tmpl-empty-content">
                         <div class="tmpl-empty-icon">
                             <span class="material-symbols-outlined">search_off</span>
                         </div>
-                        <h3 class="tmpl-empty-title">Tidak ada template ditemukan</h3>
-                        <p class="tmpl-empty-desc">Coba kata kunci pencarian lainnya.</p>
+                        <h3 class="tmpl-empty-title">Tidak ada data ditemukan</h3>
+                        <p class="tmpl-empty-desc">Coba gunakan kata kunci lain.</p>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div
+                    v-if="filteredTypes.length === 0"
+                    class="tmpl-empty-state"
+                >
+                    <div class="tmpl-empty-content">
+                        <div class="tmpl-empty-icon">
+                            <span class="material-symbols-outlined">search_off</span>
+                        </div>
+                        <h3 class="tmpl-empty-title">Template tidak ditemukan</h3>
+                        <p class="tmpl-empty-desc">Coba gunakan kata kunci pencarian yang berbeda.</p>
                     </div>
                 </div>
             </div>
@@ -131,50 +133,13 @@ import axios from "axios";
 const types = ref([]);
 const search = ref("");
 
-const groupedTypes = computed(() => {
-    const groupMap = new Map();
-
-    for (const type of types.value) {
-        if (!type.parent_id) {
-            groupMap.set(type.id, {
-                id: type.id,
-                name: type.name,
-                directType: type,
-                children: [],
-            });
-        }
-    }
-
-    for (const type of types.value) {
-        if (!type.parent_id || !type.parent) continue;
-
-        if (!groupMap.has(type.parent.id)) {
-            groupMap.set(type.parent.id, {
-                id: type.parent.id,
-                name: type.parent.name,
-                directType: null,
-                children: [],
-            });
-        }
-
-        const group = groupMap.get(type.parent.id);
-        group.directType = null;
-        group.children.push(type);
-    }
-
-    return Array.from(groupMap.values())
-        .filter((group) => group.directType || group.children.length > 0)
-        .sort((a, b) => a.name.localeCompare(b.name));
-});
-
-const filteredGroups = computed(() => {
-    if (!search.value) return groupedTypes.value;
-
+const filteredTypes = computed(() => {
+    if (!search.value) return types.value;
     const q = search.value.toLowerCase();
-    return groupedTypes.value.filter((group) => {
-        if (group.name.toLowerCase().includes(q)) return true;
-        return group.children.some((c) => c.name.toLowerCase().includes(q));
-    });
+    return types.value.filter(t => 
+        t.name.toLowerCase().includes(q) || 
+        t.code.toLowerCase().includes(q)
+    );
 });
 
 const displayTypes = (group) => {
@@ -184,26 +149,90 @@ const displayTypes = (group) => {
     return group.directType ? [group.directType] : [];
 };
 
-const getGroupIcon = (name) => {
-    const n = name.toLowerCase();
-    if (n.includes('keputusan') || n === 'sk') return 'gavel';
-    if (n.includes('tugas')) return 'travel_explore';
-    if (n.includes('undangan')) return 'mail';
-    if (n.includes('keterangan')) return 'school';
-    if (n.includes('edaran')) return 'campaign';
-    if (n.includes('memo')) return 'note_alt';
-    return 'description';
-};
+const getIconConfig = (name, id = 0) => {
+    const n = name?.toLowerCase() || "";
 
-const getGroupStyle = (name) => {
-    const n = name.toLowerCase();
-    if (n.includes('keputusan') || n === 'sk') return 'style-rose';
-    if (n.includes('tugas')) return 'style-blue';
-    if (n.includes('undangan')) return 'style-violet';
-    if (n.includes('keterangan')) return 'style-indigo';
-    if (n.includes('edaran')) return 'style-emerald';
-    if (n.includes('memo')) return 'style-amber';
-    return 'style-slate';
+    if (n.includes("tugas")) {
+        return {
+            icon: "travel_explore",
+            bg: "bg-indigo-100",
+            text: "text-indigo-600",
+        };
+    }
+
+    if (n.includes("rekomendasi")) {
+        return {
+            icon: "verified",
+            bg: "bg-amber-100",
+            text: "text-amber-600",
+        };
+    }
+
+    if (n.includes("tugas") || n.includes("st")) {
+        return {
+            icon: "assignment",
+            bg: "bg-emerald-100",
+            text: "text-emerald-600",
+        };
+    }
+
+    if (n.includes("pengantar")) {
+        return {
+            icon: "forward_to_inbox",
+            bg: "bg-amber-100",
+            text: "text-amber-600",
+        };
+    }
+
+    if (n.includes("pernyataan")) {
+        return {
+            icon: "verified_user",
+            bg: "bg-blue-100",
+            text: "text-blue-600",
+        };
+    }
+
+    if (n.includes("sk") || n.includes("keputusan")) {
+        return {
+            icon: "gavel",
+            bg: "bg-rose-100",
+            text: "text-rose-600",
+        };
+    }
+
+    if (n.includes("mou") || n.includes("kerjasama")) {
+        return {
+            icon: "handshake",
+            bg: "bg-violet-100",
+            text: "text-violet-600",
+        };
+    }
+
+    if (n.includes("ia") || n.includes("implementation")) {
+        return {
+            icon: "architecture",
+            bg: "bg-indigo-100",
+            text: "text-indigo-600",
+        };
+    }
+
+    if (n.includes("keluar") || n.includes("su")) {
+        return {
+            icon: "outgoing_mail",
+            bg: "bg-cyan-100",
+            text: "text-cyan-600",
+        };
+    }
+
+    const fallbacks = [
+        { icon: "description", bg: "bg-slate-100", text: "text-slate-600" },
+        { icon: "article", bg: "bg-orange-100", text: "text-orange-600" },
+        { icon: "folder_open", bg: "bg-teal-100", text: "text-teal-600" },
+        { icon: "edit_note", bg: "bg-pink-100", text: "text-pink-600" },
+        { icon: "drafts", bg: "bg-lime-100", text: "text-lime-600" },
+    ];
+
+    return fallbacks[id % fallbacks.length];
 };
 
 const getGroupHoverBorder = (name) => {
@@ -409,194 +438,128 @@ onMounted(async () => {
     transition: color 0.2s;
 }
 
-.tmpl-search-group:focus-within .tmpl-search-icon {
-    color: var(--primary);
-}
-
 /* ===== GRID ===== */
 .tmpl-grid {
-    gap: 2rem;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+    .tmpl-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* ===== GROUP CARD ===== */
 .tmpl-group-card {
+    padding: 1.5rem !important;
+}
+
+.tmpl-card-content {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
     gap: 1.5rem;
 }
 
-.tmpl-group-header {
+.tmpl-card-left {
     display: flex;
     align-items: center;
     gap: 1.25rem;
 }
 
 .tmpl-group-icon {
-    transition: all 0.2s;
+    width: 3.5rem !important;
+    height: 3.5rem !important;
+    flex-shrink: 0;
 }
 
 .tmpl-group-icon-text {
-    font-size: 2rem;
-    font-weight: 300;
+    font-size: 1.75rem !important;
 }
 
 .tmpl-group-name {
-    font-size: 1.5rem;
+    font-size: 1.125rem;
     font-weight: 800;
     color: var(--slate-900);
+    line-height: 1.2;
 }
 
-.tmpl-group-count {
-    color: var(--slate-500);
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-/* ===== TYPES LIST ===== */
-.tmpl-types-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-}
-
-.tmpl-type-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 1rem;
-    border-radius: 1.5rem;
-    background: rgba(248, 250, 252, 0.5);
-    border: 1px solid transparent;
-    transition: all 0.2s;
-}
-
-.tmpl-type-item:hover {
-    background: white;
-}
-
-.tmpl-type-info {
-    display: flex;
-    flex-direction: column;
-}
-
-.tmpl-type-name {
-    font-weight: 700;
-    color: var(--slate-800);
-}
-
-.tmpl-type-code {
+.tmpl-group-code {
     font-size: 0.75rem;
-    color: var(--slate-500);
+    color: var(--slate-400);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 0.25rem;
 }
 
-/* ===== DOWNLOAD BUTTON ===== */
+.tmpl-card-right {
+    flex-shrink: 0;
+}
+
 .tmpl-download-btn {
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.875rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.625rem 1rem;
-    border-radius: 0.75rem;
-    background: white;
-    border: 1px solid var(--slate-200);
-    color: var(--slate-700);
     font-size: 0.875rem;
-    font-weight: 700;
-    text-decoration: none;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    transition: all 0.2s;
 }
 
-.tmpl-download-btn .material-symbols-outlined {
-    font-size: 1.125rem;
-}
-
-/* ===== DISABLED BUTTON ===== */
 .tmpl-disabled-btn {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.625rem 1rem;
-    border-radius: 0.75rem;
-    background: var(--slate-100);
-    border: 1px solid var(--slate-200);
-    color: var(--slate-400);
+    padding: 0.625rem 1.25rem;
+    color: var(--slate-300);
     font-size: 0.875rem;
     font-weight: 700;
-    cursor: not-allowed;
 }
 
-.tmpl-disabled-btn .material-symbols-outlined {
-    font-size: 1.125rem;
-}
+/* ===== COLOR UTILS ===== */
+.bg-indigo-100 { background: var(--indigo-100); }
+.text-indigo-600 { color: var(--indigo-600); }
+.bg-amber-100 { background: var(--amber-100); }
+.text-amber-600 { color: var(--amber-600); }
+.bg-emerald-100 { background: var(--emerald-100); }
+.text-emerald-600 { color: var(--emerald-600); }
+.bg-blue-100 { background: var(--blue-100); }
+.text-blue-600 { color: var(--blue-600); }
+.bg-violet-100 { background: var(--violet-100); }
+.text-violet-600 { color: var(--violet-600); }
+.bg-rose-100 { background: var(--rose-100); }
+.text-rose-600 { color: var(--rose-600); }
+.bg-slate-100 { background: var(--slate-100); }
+.text-slate-600 { color: var(--slate-600); }
+.bg-cyan-100 { background: var(--cyan-100); }
+.text-cyan-600 { color: var(--cyan-600); }
+.bg-orange-100 { background: var(--orange-100); }
+.text-orange-600 { color: var(--orange-600); }
+.bg-teal-100 { background: var(--teal-100); }
+.text-teal-600 { color: var(--teal-600); }
+.bg-pink-100 { background: var(--pink-100); }
+.text-pink-600 { color: var(--pink-600); }
+.bg-lime-100 { background: var(--lime-100); }
+.text-lime-600 { color: var(--lime-600); }
 
-/* ===== COLOR VARIANTS - ICON ===== */
-.style-rose { background: var(--rose-50); color: var(--rose-600); border: 1px solid var(--rose-100); }
-.style-blue { background: var(--blue-50); color: var(--blue-600); border: 1px solid var(--blue-100); }
-.style-violet { background: var(--violet-50); color: var(--violet-600); border: 1px solid var(--violet-100); }
-.style-indigo { background: var(--indigo-50); color: var(--indigo-600); border: 1px solid var(--indigo-100); }
-.style-emerald { background: var(--emerald-50); color: var(--emerald-600); border: 1px solid var(--emerald-100); }
-.style-amber { background: var(--amber-50); color: var(--amber-600); border: 1px solid var(--amber-100); }
-.style-slate { background: var(--slate-50); color: var(--slate-600); border: 1px solid var(--slate-100); }
-
-/* ===== COLOR VARIANTS - HOVER BORDER ===== */
-.hover-rose:hover { border-color: var(--rose-100); }
-.hover-blue:hover { border-color: var(--blue-100); }
-.hover-violet:hover { border-color: var(--violet-100); }
-.hover-indigo:hover { border-color: var(--indigo-100); }
-.hover-emerald:hover { border-color: var(--emerald-100); }
-.hover-amber:hover { border-color: var(--amber-100); }
-.hover-slate:hover { border-color: var(--slate-100); }
-
-/* ===== COLOR VARIANTS - BUTTON HOVER ===== */
-.btn-rose:hover { background: var(--rose-600); color: white; border-color: var(--rose-600); }
-.btn-blue:hover { background: var(--blue-600); color: white; border-color: var(--blue-600); }
-.btn-violet:hover { background: var(--violet-600); color: white; border-color: var(--violet-600); }
-.btn-indigo:hover { background: var(--indigo-600); color: white; border-color: var(--indigo-600); }
-.btn-emerald:hover { background: var(--emerald-600); color: white; border-color: var(--emerald-600); }
-.btn-amber:hover { background: var(--amber-600); color: white; border-color: var(--amber-600); }
-.btn-slate:hover { background: var(--slate-800); color: white; border-color: var(--slate-800); }
-
-/* ===== EMPTY STATE ===== */
-.tmpl-empty-state {
-    background: white;
-    border-radius: 1.5rem;
-    border: 2px dashed var(--slate-200);
-    padding: 1.5rem 4rem;
-    text-align: center;
-}
-
-.tmpl-empty-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.tmpl-empty-icon {
-    width: 4rem;
-    height: 4rem;
-    border-radius: 1rem;
-    background: var(--slate-100);
-    color: var(--slate-400);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 1rem;
-}
-
-.tmpl-empty-icon .material-symbols-outlined {
-    font-size: 2.5rem;
-}
-
-.tmpl-empty-title {
-    font-size: 0.875rem;
-    font-weight: 700;
-    color: var(--slate-600);
-    margin-bottom: 0.25rem;
-}
-
-.tmpl-empty-desc {
-    font-size: 0.75rem;
-    color: var(--slate-400);
+@media (max-width: 640px) {
+    .tmpl-card {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1.5rem;
+        gap: 1.25rem;
+    }
+    
+    .tmpl-card-right {
+        width: 100%;
+    }
+    
+    .tmpl-download-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 /* ===== FOOTER ===== */

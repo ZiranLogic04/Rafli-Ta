@@ -11,6 +11,7 @@ import UserApprovalsIndex from "./Pages/User/Approvals/Index.vue";
 
 import AdminTypesIndex from "./Pages/Admin/Types/Index.vue";
 import AdminUsersIndex from "./Pages/Admin/Users/Index.vue";
+import AdminProdiIndex from "./Pages/Admin/Prodi/Index.vue";
 
 const routes = [
     { path: "/login", name: "login", component: Login, meta: { guest: true } },
@@ -64,6 +65,12 @@ const routes = [
         path: "/admin/users",
         name: "admin.users.index",
         component: AdminUsersIndex,
+        meta: { auth: true, admin: true },
+    },
+    {
+        path: "/admin/prodis",
+        name: "admin.prodis.index",
+        component: AdminProdiIndex,
         meta: { auth: true, admin: true },
     },
 
