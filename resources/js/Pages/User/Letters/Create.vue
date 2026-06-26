@@ -345,12 +345,12 @@ const submitLetter = async () => {
         return;
     }
 
-    if (!targetSelection.value) {
+    if (targetRoleSelection.value !== 'lainnya' && !targetSelection.value) {
         showFlash("Pilih tujuan surat terlebih dahulu.", "error");
         return;
     }
 
-    if (targetSelection.value === "lainnya" && !targetName.value.trim()) {
+    if (targetRoleSelection.value === "lainnya" && !targetName.value.trim()) {
         showFlash("Nama tujuan wajib diisi jika memilih opsi Lainnya.", "error");
         return;
     }
