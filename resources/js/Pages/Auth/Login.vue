@@ -69,17 +69,6 @@
                         </button>
                     </form>
 
-                    <div class="divider">
-                        <span>Akses Cepat</span>
-                    </div>
-
-                    <router-link to="/templates" class="btn-outline template-link">
-                        <span class="template-link-left">
-                            <span class="material-symbols-outlined">description</span>
-                            Lihat Template Surat
-                        </span>
-                        <span class="material-symbols-outlined">arrow_forward</span>
-                    </router-link>
                 </div>
             </div>
         </div>

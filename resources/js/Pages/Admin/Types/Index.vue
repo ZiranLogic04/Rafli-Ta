@@ -35,7 +35,6 @@
                                 <th class="col-num">#</th>
                                 <th>Nama Jenis Surat</th>
                                 <th>Kode</th>
-                                <th>Template</th>
                                 <th class="text-center">Total Surat</th>
                                 <th class="text-center">Aksi</th>
                             </tr>
@@ -53,13 +52,6 @@
                                 </td>
                                 <td>
                                     <span class="code-badge">{{ type.code }}</span>
-                                </td>
-                                <td>
-                                    <a v-if="type.template_path" :href="`/api/admin/types/${type.id}/download`" class="download-link">
-                                        <span class="material-symbols-outlined">download</span>
-                                        {{ type.original_filename || "Download" }}
-                                    </a>
-                                    <span v-else class="text-muted text-xs italic">Belum ada</span>
                                 </td>
                                 <td class="text-center">
                                     <span class="count-badge">{{ type.letter_count || 0 }}</span>
@@ -130,14 +122,6 @@
                                 <div class="preview-label">Contoh Nomor Surat:</div>
                                 <div class="preview-value">{{ letterNumberPreview }}</div>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Template (.docx) <span v-if="editingType" class="text-optional">- Opsional</span></label>
-                                <div class="file-upload" @click="$refs.fileInput.click()">
-                                    <input ref="fileInput" type="file" accept=".docx" class="hidden" @change="onFileSelect" />
-                                    <span class="material-symbols-outlined file-upload__icon">upload_file</span>
-                                    <span class="file-upload__text">{{ selectedFileName || "Pilih file Word (.docx)" }}</span>
-                                </div>
-                            </div>
                         </div>
                         <div class="modal-card__footer">
                             <button type="button" @click="showModal = false" class="btn-cancel">Batal</button>
@@ -198,14 +182,7 @@
                                 <div class="guide-step__number">2</div>
                                 <div>
                                     <h4 class="guide-step__title">Tambah Surat</h4>
-                                    <p class="guide-step__desc">Buat jenis surat spesifik di bawah kategori. Pilih jenis surat, isi nama lanjutan (contoh: <b>Mutasi</b>), kode lanjutan (<b>MUT</b>), dan upload template.</p>
-                                </div>
-                            </div>
-                            <div class="guide-step">
-                                <div class="guide-step__number">3</div>
-                                <div>
-                                    <h4 class="guide-step__title">Template</h4>
-                                    <p class="guide-step__desc">Template (.docx) adalah contoh format surat yang bisa diunduh pengguna sebagai acuan saat membuat surat.</p>
+                                    <p class="guide-step__desc">Buat jenis surat spesifik di bawah kategori. Pilih jenis surat, isi nama lanjutan (contoh: <b>Mutasi</b>), dan kode lanjutan (<b>MUT</b>).</p>
                                 </div>
                             </div>
                         </div>
@@ -241,8 +218,6 @@ const showDeleteModal = ref(false);
 const editingType = ref(null);
 const deletingType = ref(null);
 const form = ref({ name: "", code: "", parent_id: null });
-const selectedFile = ref(null);
-const selectedFileName = ref("");
 const saving = ref(false);
 
 const fetchTypes = async () => {
@@ -257,8 +232,6 @@ const openCreateModal = () => {
         code: "", 
         parent_id: null
     };
-    selectedFile.value = null;
-    selectedFileName.value = "";
     showModal.value = true;
 };
 
@@ -269,8 +242,6 @@ const openEditModal = (type) => {
         code: type.code, 
         parent_id: null
     };
-    selectedFile.value = null;
-    selectedFileName.value = "";
     showModal.value = true;
 };
 
@@ -279,10 +250,7 @@ const openDeleteModal = (type) => {
     showDeleteModal.value = true;
 };
 
-const onFileSelect = (e) => {
-    selectedFile.value = e.target.files[0] || null;
-    selectedFileName.value = selectedFile.value?.name || "";
-};
+
 
 const saveType = async () => {
     saving.value = true;
@@ -294,8 +262,6 @@ const saveType = async () => {
         // Always use standard format, the code itself might contain {Prodi}
         fd.append("code_format", "{no}/{kode}/PP/{bln}/{thn}");
         
-        if (selectedFile.value) fd.append("template_path", selectedFile.value);
-
         if (editingType.value) {
             fd.append("_method", "PUT");
             await axios.post(`/api/admin/types/${editingType.value.id}`, fd);

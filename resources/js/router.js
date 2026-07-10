@@ -2,7 +2,6 @@ import { createRouter, createWebHistory } from "vue-router";
 import axios from "axios";
 
 import Login from "./Pages/Auth/Login.vue";
-import PublicTemplates from "./Pages/Public/Templates.vue";
 
 import Dashboard from "./Pages/Dashboard.vue";
 import UserLettersIndex from "./Pages/User/Letters/Index.vue";
@@ -15,14 +14,6 @@ import AdminProdiIndex from "./Pages/Admin/Prodi/Index.vue";
 
 const routes = [
     { path: "/login", name: "login", component: Login, meta: { guest: true } },
-    {
-        path: "/templates",
-        name: "public.templates",
-        component: PublicTemplates,
-        meta: { public: true },
-    },
-
-    // User routes
     {
         path: "/dashboard",
         name: "dashboard",

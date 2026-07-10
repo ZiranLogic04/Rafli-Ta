@@ -11,9 +11,7 @@ use App\Http\Controllers\ProdiController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-// Public template endpoints (guest)
-Route::get('/public/templates', [LetterTypeController::class, 'publicIndex']);
-Route::get('/public/templates/{id}/download', [LetterTypeController::class, 'download']);
+// Public Department endpoint
 Route::get('/public/departments', [AdminDepartmentController::class, 'apiIndex']);
 
 // Public Auth routes
@@ -32,11 +30,10 @@ Route::middleware('auth:sanctum')->group(function () {
     // User letters
     Route::get('/letters', [LetterController::class, 'apiIndex']);
     Route::post('/letters', [LetterController::class, 'apiStore']);
-    Route::post('/letters/{id}/upload', [LetterController::class, 'apiUploadFile']);
     Route::get('/letters/create-data', [LetterController::class, 'apiCreateData']);
-    Route::get('/letters/template/{id}', [LetterController::class, 'downloadTemplate']);
     Route::get('/letters/{id}/download', [LetterController::class, 'download']);
     Route::patch('/letters/{letter}/number', [LetterController::class, 'updateLetterNumber']);
+    Route::delete('/letters/{id}', [LetterController::class, 'apiDestroy']);
 
     // All letters / Inbox
     Route::get('/approvals', [AdminLetterController::class, 'apiInbox']);
@@ -53,7 +50,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/types', [LetterTypeController::class, 'store']);
         Route::put('/types/{id}', [LetterTypeController::class, 'update']);
         Route::delete('/types/{id}', [LetterTypeController::class, 'destroy']);
-        Route::get('/types/{id}/download', [LetterTypeController::class, 'download']);
 
         // Users
         Route::get('/users', [AdminUserController::class, 'apiIndex']);

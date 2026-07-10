@@ -276,14 +276,7 @@ class DatabaseSeeder extends Seeder
             ['code' => 'SED-EKS', 'parent_id' => $sed->id]
         );
 
-        // ==================== CREATE DUMMY TEMPLATES ====================
-        $allLetterTypes = LetterType::whereNull('parent_id')->get();
-        foreach ($allLetterTypes as $parent) {
-            $this->createDummyTemplate($parent);
-            foreach ($parent->children as $child) {
-                $this->createDummyTemplate($child);
-            }
-        }
+
 
         // ==================== ROLE PERMISSIONS ====================
         $allTypes = LetterType::all();
@@ -450,19 +443,5 @@ class DatabaseSeeder extends Seeder
         ]);
     }
 
-    private function createDummyTemplate($type)
-    {
-        $filename = "template_{$type->code}.docx";
-        $path = "templates/{$filename}";
-
-        if (! \Illuminate\Support\Facades\Storage::exists($path)) {
-            $content = "TEMPLATE SURAT: {$type->name}\n\nKode: {$type->code}\n\nIni adalah template contoh untuk jenis surat {$type->name}.\nSilakan sesuaikan dengan kebutuhan Anda.";
-            \Illuminate\Support\Facades\Storage::put($path, $content);
-        }
-
-        $type->update([
-            'template_path' => $path,
-            'original_filename' => "Template_{$type->name}.docx",
-        ]);
     }
 }

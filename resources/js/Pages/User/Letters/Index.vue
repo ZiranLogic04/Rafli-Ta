@@ -48,8 +48,8 @@
                                 <th>Penandatangan</th>
                                 <th>Jenis & Tujuan</th>
                                 <th>Keterangan</th>
-                                <th>Tanggal</th>
-                                <th class="header-center">Dokumen</th>
+                                <th>Tanggal Surat Dibuat</th>
+                                <th class="header-center">Aksi</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -58,7 +58,7 @@
                                 :key="letter.id"
                                 class="letter-row"
                             >
-                                <td>
+                                <td class="nowrap">
                                     <div class="letter-number-box">
                                         <template v-if="editingId === letter.id">
                                             <input 
@@ -112,33 +112,13 @@
                                 </td>
                                 <td class="cell-center">
                                     <div class="action-buttons">
-                                        <template v-if="letter.file_path">
-                                            <a
-                                                :href="`/api/letters/${letter.id}/download`"
-                                                target="_blank"
-                                                class="action-btn download-btn"
-                                                title="Unduh Surat"
-                                            >
-                                                <span class="material-symbols-outlined icon-size-sm">download</span>
-                                            </a>
-                                            <button
-                                                @click="triggerUpload(letter.id)"
-                                                class="action-btn upload-btn"
-                                                title="Ganti Dokumen"
-                                            >
-                                                <span class="material-symbols-outlined icon-size-sm">upload_file</span>
-                                            </button>
-                                        </template>
-                                        <template v-else>
-                                            <button
-                                                @click="triggerUpload(letter.id)"
-                                                class="action-btn upload-btn-primary"
-                                                title="Unggah Dokumen"
-                                            >
-                                                <span class="material-symbols-outlined icon-size-sm">file_upload</span>
-                                                <span class="upload-label">Unggah</span>
-                                            </button>
-                                        </template>
+                                        <button
+                                            @click="deleteLetter(letter.id)"
+                                            class="action-btn delete-btn"
+                                            title="Hapus Surat"
+                                        >
+                                            <span class="material-symbols-outlined">delete</span>
+                                        </button>
                                     </div>
                                 </td>
                             </tr>
@@ -175,23 +155,6 @@
                     {{ p }}
                 </button>
             </div>
-            
-            <!-- Hidden File Input for Uploading -->
-            <input 
-                type="file" 
-                ref="fileInputRef" 
-                class="hidden-input" 
-                accept=".docx,.doc,.pdf" 
-                @change="handleFileUpload" 
-            />
-            
-            <!-- Loading Overlay for Uploading -->
-            <div v-if="uploading" class="upload-overlay">
-                <div class="upload-spinner">
-                    <span class="material-symbols-outlined animate-spin icon-size-xl">progress_activity</span>
-                    <p>Mengunggah file...</p>
-                </div>
-            </div>
         </div>
     </AppLayout>
 </template>
@@ -207,9 +170,6 @@ const page = ref(1);
 const pagination = ref({ lastPage: 1 });
 const showFlash = inject("showFlash");
 
-const fileInputRef = ref(null);
-const currentUploadId = ref(null);
-const uploading = ref(false);
 const editingId = ref(null);
 const editNumber = ref("");
 
@@ -285,30 +245,16 @@ const fetchLetters = async () => {
     pagination.value = { lastPage: res.data.last_page || 1 };
 };
 
-const triggerUpload = (id) => {
-    currentUploadId.value = id;
-    if (fileInputRef.value) {
-        fileInputRef.value.click();
-    }
-};
 
-const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file || !currentUploadId.value) return;
 
-    uploading.value = true;
+const deleteLetter = async (id) => {
+    if (!confirm("Apakah Anda yakin ingin menghapus surat ini?")) return;
     try {
-        const fd = new FormData();
-        fd.append("file", file);
-        await axios.post(`/api/letters/${currentUploadId.value}/upload`, fd);
-        showFlash("File surat berhasil diunggah!");
+        await axios.delete(`/api/letters/${id}`);
+        showFlash("Surat berhasil dihapus!");
         fetchLetters();
     } catch (error) {
-        showFlash(error.response?.data?.message || "Gagal mengunggah file.", "error");
-    } finally {
-        e.target.value = null; // reset input
-        currentUploadId.value = null;
-        uploading.value = false;
+        showFlash(error.response?.data?.message || "Gagal menghapus surat", "error");
     }
 };
 
@@ -648,6 +594,16 @@ onMounted(fetchLetters);
 .upload-btn-primary:hover {
     background: var(--emerald-100);
     color: var(--emerald-700);
+}
+
+.delete-btn {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.delete-btn:hover {
+    background: #ef4444;
+    color: white;
 }
 
 /* Empty Table Cell */

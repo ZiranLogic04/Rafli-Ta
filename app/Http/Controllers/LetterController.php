@@ -195,31 +195,6 @@ class LetterController extends Controller
         return $map[$month];
     }
 
-    public function apiUploadFile(Request $request, $id)
-    {
-        $request->validate([
-            'file' => 'required|mimes:pdf,docx,doc|max:5120',
-        ]);
-
-        $letter = \App\Models\Letter::findOrFail($id);
-
-        if ($letter->user_id !== auth()->id() && auth()->user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        if ($letter->file_path && \Illuminate\Support\Facades\Storage::exists($letter->file_path)) {
-            \Illuminate\Support\Facades\Storage::delete($letter->file_path);
-        }
-
-        $file = $request->file('file');
-        $filename = time().'_'.auth()->id().'_'.$file->getClientOriginalName();
-        $path = $file->storeAs('letters/'.date('Y/m'), $filename);
-
-        $letter->update(['file_path' => $path]);
-
-        return response()->json(['message' => 'File surat berhasil diunggah.', 'letter' => $letter]);
-    }
-
     public function download($id)
     {
         $user = auth()->user();
@@ -246,17 +221,24 @@ class LetterController extends Controller
         return response()->download($fullPath);
     }
 
-    public function downloadTemplate($id)
+    public function apiDestroy($id)
     {
-        $type = \App\Models\LetterType::findOrFail($id);
-        if (! $type->template_path || ! \Illuminate\Support\Facades\Storage::exists($type->template_path)) {
-            return response()->json(['message' => 'Template belum tersedia.'], 404);
+        $letter = \App\Models\Letter::findOrFail($id);
+
+        if ($letter->user_id !== auth()->id()) {
+            return response()->json(['message' => 'Anda tidak memiliki akses untuk menghapus surat ini.'], 403);
         }
 
-        $filename = $type->original_filename ?? basename($type->template_path);
+        if ($letter->file_path && \Illuminate\Support\Facades\Storage::exists($letter->file_path)) {
+            \Illuminate\Support\Facades\Storage::delete($letter->file_path);
+        }
 
-        return response()->download(\Illuminate\Support\Facades\Storage::path($type->template_path), $filename);
+        $letter->delete();
+
+        return response()->json(['message' => 'Surat berhasil dihapus.']);
     }
+
+
 
     private function formatTargetInfo($letter): string
     {

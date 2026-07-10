@@ -21,21 +21,7 @@ class LetterTypeController extends Controller
         return response()->json($types);
     }
 
-    public function publicIndex()
-    {
-        $types = \App\Models\LetterType::with('parent')
-            ->orderByRaw('CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END')
-            ->orderBy('name')
-            ->get()
-            ->map(function ($type) {
-                $data = $type->toArray();
-                $data['has_template'] = $type->template_path && \Illuminate\Support\Facades\Storage::exists($type->template_path);
 
-                return $data;
-            });
-
-        return response()->json($types);
-    }
 
     public function store(Request $request)
     {
@@ -44,7 +30,6 @@ class LetterTypeController extends Controller
             'code' => 'required|unique:letter_types,code',
             'parent_id' => 'nullable|exists:letter_types,id',
             'code_format' => 'nullable|string|max:255',
-            'template_path' => 'nullable|file|mimes:docx',
         ]);
 
         if ($request->filled('parent_id')) {
@@ -54,21 +39,11 @@ class LetterTypeController extends Controller
             }
         }
 
-        $path = null;
-        $originalFilename = null;
-        if ($request->hasFile('template_path')) {
-            $file = $request->file('template_path');
-            $originalFilename = $file->getClientOriginalName();
-            $path = $file->store('templates');
-        }
-
         $type = \App\Models\LetterType::create([
             'name' => $request->name,
             'code' => $request->code,
             'parent_id' => $request->parent_id,
             'code_format' => $request->code_format,
-            'template_path' => $path,
-            'original_filename' => $originalFilename,
         ]);
 
         return response()->json(['message' => 'Jenis surat berhasil ditambahkan.', 'type' => $type]);
@@ -83,7 +58,6 @@ class LetterTypeController extends Controller
             'code' => 'required|unique:letter_types,code,'.$id,
             'parent_id' => 'nullable|exists:letter_types,id',
             'code_format' => 'nullable|string|max:255',
-            'template_path' => 'nullable|file|mimes:docx',
         ]);
 
         if ($request->filled('parent_id')) {
@@ -98,16 +72,6 @@ class LetterTypeController extends Controller
         }
 
         $data = $request->only('name', 'code', 'parent_id', 'code_format');
-
-        if ($request->hasFile('template_path')) {
-            if ($type->template_path && \Illuminate\Support\Facades\Storage::exists($type->template_path)) {
-                \Illuminate\Support\Facades\Storage::delete($type->template_path);
-            }
-
-            $file = $request->file('template_path');
-            $data['original_filename'] = $file->getClientOriginalName();
-            $data['template_path'] = $file->store('templates');
-        }
 
         $type->update($data);
 
@@ -130,18 +94,7 @@ class LetterTypeController extends Controller
         return response()->json(['message' => 'Jenis surat berhasil dihapus.']);
     }
 
-    public function download($id)
-    {
-        $type = \App\Models\LetterType::findOrFail($id);
 
-        if (! $type->template_path) {
-            abort(404, 'Template tidak ditemukan');
-        }
-
-        $filename = $type->original_filename ?? basename($type->template_path);
-
-        return \Illuminate\Support\Facades\Storage::download($type->template_path, $filename);
-    }
 
     public function apiRolePermissions($role)
     {
