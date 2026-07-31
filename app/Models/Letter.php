@@ -60,7 +60,9 @@ class Letter extends Model
 
     public static function makeUniqueLetterNumber(string $letterNumber, ?int $ignoreId = null): string
     {
-        $query = static::where('letter_number', $letterNumber);
+        $pattern = static::getPatternWithoutMonth($letterNumber);
+
+        $query = static::where('letter_number', 'LIKE', $pattern);
         if ($ignoreId) {
             $query->where('id', '!=', $ignoreId);
         }
@@ -77,8 +79,9 @@ class Letter extends Model
             while (true) {
                 $suffix = static::getLetterSuffix($index);
                 $candidate = $digits . $suffix . $rest;
+                $candidatePattern = static::getPatternWithoutMonth($candidate);
 
-                $candidateQuery = static::where('letter_number', $candidate);
+                $candidateQuery = static::where('letter_number', 'LIKE', $candidatePattern);
                 if ($ignoreId) {
                     $candidateQuery->where('id', '!=', $ignoreId);
                 }
@@ -90,21 +93,12 @@ class Letter extends Model
             }
         }
 
-        $index = 0;
-        while (true) {
-            $suffix = static::getLetterSuffix($index);
-            $candidate = $letterNumber . '-' . $suffix;
+        return $letterNumber;
+    }
 
-            $candidateQuery = static::where('letter_number', $candidate);
-            if ($ignoreId) {
-                $candidateQuery->where('id', '!=', $ignoreId);
-            }
-
-            if (! $candidateQuery->exists()) {
-                return $candidate;
-            }
-            $index++;
-        }
+    private static function getPatternWithoutMonth(string $letterNumber): string
+    {
+        return preg_replace('/\/(XII|XI|X|IX|VIII|VII|VI|V|IV|III|II|I)\//i', '/%/', $letterNumber);
     }
 
     private static function getLetterSuffix(int $index): string
