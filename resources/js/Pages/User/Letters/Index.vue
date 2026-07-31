@@ -65,11 +65,14 @@
                                                 v-model="editNumber" 
                                                 class="edit-input" 
                                                 @keyup.enter="saveEdit(letter.id)"
-                                                @blur="editingId = null"
+                                                @keyup.escape="editingId = null"
                                                 v-focus
                                             />
-                                            <button @click="saveEdit(letter.id)" class="edit-save-btn">
+                                            <button @mousedown.prevent @click="saveEdit(letter.id)" class="edit-save-btn" title="Simpan">
                                                 <span class="material-symbols-outlined">check</span>
+                                            </button>
+                                            <button @mousedown.prevent @click="editingId = null" class="edit-cancel-btn" title="Batal">
+                                                <span class="material-symbols-outlined">close</span>
                                             </button>
                                         </template>
                                         <template v-else>
@@ -198,7 +201,13 @@ const saveEdit = async (id) => {
         editingId.value = null;
         fetchLetters();
     } catch (error) {
-        showFlash(error.response?.data?.message || "Gagal memperbarui nomor surat", "error");
+        let msg = "Gagal memperbarui nomor surat.";
+        if (error.response?.data?.errors) {
+            msg = Object.values(error.response.data.errors).flat()[0];
+        } else if (error.response?.data?.message) {
+            msg = error.response.data.message;
+        }
+        showFlash(msg, "error");
     }
 };
 
@@ -531,6 +540,17 @@ onMounted(fetchLetters);
 
 .edit-save-btn {
     background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 0.375rem;
+    padding: 0.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+}
+
+.edit-cancel-btn {
+    background: #ef4444;
     color: white;
     border: none;
     border-radius: 0.375rem;

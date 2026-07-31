@@ -333,7 +333,13 @@ const updateLetterNumber = async () => {
         showEditNumberModal.value = false;
         fetchLetters();
     } catch (e) {
-        showFlash(e.response?.data?.message || "Gagal.", "error");
+        let msg = "Gagal memperbarui nomor surat.";
+        if (e.response?.data?.errors) {
+            msg = Object.values(e.response.data.errors).flat()[0];
+        } else if (e.response?.data?.message) {
+            msg = e.response.data.message;
+        }
+        showFlash(msg, "error");
     }
 };
 
