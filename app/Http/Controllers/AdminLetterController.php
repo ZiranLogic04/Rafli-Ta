@@ -109,11 +109,13 @@ class AdminLetterController extends Controller
     public function updateLetterNumber(Request $request, $id)
     {
         $request->validate([
-            'letter_number' => 'required|string|max:255|unique:letters,letter_number,' . $id,
+            'letter_number' => 'required|string|max:255',
         ]);
 
+        $uniqueNumber = \App\Models\Letter::makeUniqueLetterNumber($request->letter_number, $id);
+
         $letter = \App\Models\Letter::findOrFail($id);
-        $letter->update(['letter_number' => $request->letter_number]);
+        $letter->update(['letter_number' => $uniqueNumber]);
 
         return response()->json(['message' => 'Nomor surat berhasil diperbarui.', 'letter' => $letter]);
     }

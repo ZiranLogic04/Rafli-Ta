@@ -57,4 +57,63 @@ class Letter extends Model
     {
         return $this->target_name ?: "-";
     }
+
+    public static function makeUniqueLetterNumber(string $letterNumber, ?int $ignoreId = null): string
+    {
+        $query = static::where('letter_number', $letterNumber);
+        if ($ignoreId) {
+            $query->where('id', '!=', $ignoreId);
+        }
+
+        if (! $query->exists()) {
+            return $letterNumber;
+        }
+
+        if (preg_match('/^(\d+)([A-Z]*)(.*)/', $letterNumber, $matches)) {
+            $digits = $matches[1];
+            $rest = $matches[3];
+
+            $index = 0;
+            while (true) {
+                $suffix = static::getLetterSuffix($index);
+                $candidate = $digits . $suffix . $rest;
+
+                $candidateQuery = static::where('letter_number', $candidate);
+                if ($ignoreId) {
+                    $candidateQuery->where('id', '!=', $ignoreId);
+                }
+
+                if (! $candidateQuery->exists()) {
+                    return $candidate;
+                }
+                $index++;
+            }
+        }
+
+        $index = 0;
+        while (true) {
+            $suffix = static::getLetterSuffix($index);
+            $candidate = $letterNumber . '-' . $suffix;
+
+            $candidateQuery = static::where('letter_number', $candidate);
+            if ($ignoreId) {
+                $candidateQuery->where('id', '!=', $ignoreId);
+            }
+
+            if (! $candidateQuery->exists()) {
+                return $candidate;
+            }
+            $index++;
+        }
+    }
+
+    private static function getLetterSuffix(int $index): string
+    {
+        $suffix = '';
+        while ($index >= 0) {
+            $suffix = chr(65 + ($index % 26)) . $suffix;
+            $index = intdiv($index, 26) - 1;
+        }
+        return $suffix;
+    }
 }

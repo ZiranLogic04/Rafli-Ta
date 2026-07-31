@@ -94,11 +94,7 @@ class LetterController extends Controller
         $jurusan = $request->target_jurusan;
         
         $letterNumber = $this->generateLetterNumber($letterType, $jurusan);
-        
-        // Check if letter number already exists
-        if (\App\Models\Letter::where('letter_number', $letterNumber)->exists()) {
-            return response()->json(['message' => 'Nomor surat ' . $letterNumber . ' sudah ada di sistem. Mohon cek kembali.'], 422);
-        }
+        $letterNumber = \App\Models\Letter::makeUniqueLetterNumber($letterNumber);
 
         $letter = \App\Models\Letter::create([
             'user_id' => auth()->id(),
@@ -123,14 +119,16 @@ class LetterController extends Controller
     public function updateLetterNumber(Request $request, \App\Models\Letter $letter)
     {
         $request->validate([
-            'letter_number' => 'required|string|unique:letters,letter_number,' . $letter->id,
+            'letter_number' => 'required|string|max:255',
         ]);
+
+        $uniqueNumber = \App\Models\Letter::makeUniqueLetterNumber($request->letter_number, $letter->id);
 
         $letter->update([
-            'letter_number' => $request->letter_number
+            'letter_number' => $uniqueNumber
         ]);
 
-        return response()->json(['message' => 'Nomor surat berhasil diperbarui.']);
+        return response()->json(['message' => 'Nomor surat berhasil diperbarui.', 'letter_number' => $uniqueNumber]);
     }
 
     private function generateLetterNumber($letterType, $targetJurusan = null)
